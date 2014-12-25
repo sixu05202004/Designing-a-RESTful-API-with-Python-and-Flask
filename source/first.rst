@@ -4,40 +4,50 @@
 使用 Python 和 Flask 设计 RESTful API
 =============================================
 
-In recent years REST (REpresentational State Transfer) has emerged as the standard architectural design for web services and web APIs.
+近些年来 REST (REpresentational State Transfer) 已经变成了 web services 和 web APIs 的标配。
 
-In this article I'm going to show you how easy it is to create a RESTful web service using Python and the Flask microframework.
+在本文中我将向你展示如何简单地使用 Python 和 Flask 框架来创建一个 RESTful 的 web service。
 
-What is REST?
-The characteristics of a REST system are defined by six design rules:
+什么是 REST？
+--------------
 
-Client-Server: There should be a separation between the server that offers a service, and the client that consumes it.
-Stateless: Each request from a client must contain all the information required by the server to carry out the request. In other words, the server cannot store information provided by the client in one request and use it in another request.
-Cacheable: The server must indicate to the client if requests can be cached or not.
-Layered System: Communication between a client and a server should be standardized in such a way that allows intermediaries to respond to requests instead of the end server, without the client having to do anything different.
-Uniform Interface: The method of communication between a client and a server must be uniform.
-Code on demand: Servers can provide executable code or scripts for clients to execute in their context. This constraint is the only one that is optional.
-What is a RESTful web service?
-The REST architecture was originally designed to fit the HTTP protocol that the world wide web uses.
+六条设计规范定义了一个 REST 系统的特点:
 
-Central to the concept of RESTful web services is the notion of resources. Resources are represented by URIs. The clients send requests to these URIs using the methods defined by the HTTP protocol, and possibly as a result of that the state of the affected resource changes.
+* **客户端-服务器**: 客户端和服务器之间隔离，服务器提供服务，客户端进行消费。
+* **无状态**: 从客户端到服务器的每个请求都必须包含理解请求所必需的信息。换句话说， 服务器不会存储客户端上一次请求的信息用来给下一次使用。
+* **可缓存**: 服务器必须明示客户端请求能否缓存。
+* **分层系统**: 客户端和服务器之间的通信应该以一种标准的方式，就是中间层代替服务器做出响应的时候，客户端不需要做任何变动。
+* **统一的接口**: 服务器和客户端的通信方法必须是统一的。
+* **按需编码**: 服务器可以提供可执行代码或脚本，为客户端在它们的环境中执行。这个约束是唯一一个是可选的。
 
-The HTTP request methods are typically designed to affect a given resource in standard ways:
 
-HTTP Method	Action	Examples
-GET	Obtain information about a resource	http://example.com/api/orders
-(retrieve order list)
-GET	Obtain information about a resource	http://example.com/api/orders/123
-(retrieve order #123)
-POST	Create a new resource	http://example.com/api/orders
-(create a new order, from data provided with the request)
-PUT	Update a resource	http://example.com/api/orders/123
-(update order #123, from data provided with the request)
-DELETE	Delete a resource	http://example.com/api/orders/123
-(delete order #123)
-The REST design does not require a specific format for the data provided with the requests. In general data is provided in the request body as a JSON blob, or sometimes as arguments in the query string portion of the URL.
+什么是一个 RESTful 的 web service？
+------------------------------------
 
-Designing a simple web service
+REST 架构的最初目的是适应万维网的 HTTP 协议。
+
+RESTful web services 概念的核心就是“资源”。 资源可以用 `URI <https://en.wikipedia.org/wiki/Uniform_resource_identifier>`_ 来表示。客户端使用 HTTP 协议定义的方法来发送请求到这些 URIs，当然可能会导致这些被访问的”资源“状态的改变。
+
+HTTP 标准的方法有如下::
+
+  ==========  ==============  ==================================
+  HTTP 方法   行为            示例
+  ==========  ==============  ==================================
+  GET         获取资源的信息  http://example.com/api/orders
+  GET         获取资源的信息  http://example.com/api/orders/123
+  POST        创建新资源      http://example.com/api/orders
+  PUT         更新资源        http://example.com/api/orders/123
+  DELETE      删除资源        http://example.com/api/orders/123
+  ==========  ==============  ==================================
+
+REST 设计不需要特定的数据格式。在请求中数据可以以 `JSON <http://en.wikipedia.org/wiki/JSON>`_ 形式, 或者有时候作为 url 中查询参数项。
+
+
+设计一个简单的 web service
+----------------------------
+
+
+
 The task of designing a web service or API that adheres to the REST guidelines then becomes an exercise in identifying the resources that will be exposed and how they will be affected by the different request methods.
 
 Let's say we want to write a To Do List application and we want to design a web service for it. The first thing to do is to decide what is the root URL to access this service. For example, we could expose this service as:

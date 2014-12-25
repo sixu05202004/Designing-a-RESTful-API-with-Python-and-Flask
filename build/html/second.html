@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>使用 Flask-RESTful 设计(编写) RESTful API &mdash; Designing a RESTful API with Python and Flask 1.0 documentation</title>
+    <title>使用 Flask-RESTful 设计 RESTful API &mdash; Designing a RESTful API with Python and Flask 1.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,8 +24,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Designing a RESTful API with Python and Flask 1.0 documentation" href="index.html" />
-    <link rel="next" title="使用 Flask 设计(编写) RESTful 的认证" href="third.html" />
-    <link rel="prev" title="使用 Python 和 Flask 设计(编写) RESTful API" href="first.html" /> 
+    <link rel="next" title="使用 Flask 设计 RESTful 的认证" href="third.html" />
+    <link rel="prev" title="使用 Python 和 Flask 设计 RESTful API" href="first.html" /> 
   </head>
   <body>
     <div class="related">
@@ -35,10 +35,10 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="third.html" title="使用 Flask 设计(编写) RESTful 的认证"
+          <a href="third.html" title="使用 Flask 设计 RESTful 的认证"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="first.html" title="使用 Python 和 Flask 设计(编写) RESTful API"
+          <a href="first.html" title="使用 Python 和 Flask 设计 RESTful API"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">Designing a RESTful API with Python and Flask 1.0 documentation</a> &raquo;</li> 
       </ul>
@@ -50,7 +50,192 @@
           <div class="body">
             
   <div class="section" id="flask-restful-restful-api">
-<span id="second"></span><h1>使用 Flask-RESTful 设计(编写) RESTful API<a class="headerlink" href="#flask-restful-restful-api" title="Permalink to this headline">¶</a></h1>
+<span id="second"></span><h1>使用 Flask-RESTful 设计 RESTful API<a class="headerlink" href="#flask-restful-restful-api" title="Permalink to this headline">¶</a></h1>
+<p>This is the third article in which I explore different aspects of writing RESTful APIs using the Flask microframework.</p>
+<p>The example RESTful server I wrote before used only Flask as a dependency. Today I will show you how to write the same server using Flask-RESTful, a Flask extension that simplifies the creation of APIs.</p>
+<p>The RESTful server
+As a reminder, here is the definition of the ToDo List web service that has been serving as an example in my RESTful articles:</p>
+<p>HTTP Method     URI     Action
+GET     <a class="reference external" href="http://[hostname]/todo/api/v1.0/tasks">http://[hostname]/todo/api/v1.0/tasks</a>   Retrieve list of tasks
+GET     <a class="reference external" href="http://[hostname]/todo/api/v1.0/tasks/[task_id">http://[hostname]/todo/api/v1.0/tasks/[task_id</a>] Retrieve a task
+POST    <a class="reference external" href="http://[hostname]/todo/api/v1.0/tasks">http://[hostname]/todo/api/v1.0/tasks</a>   Create a new task
+PUT     <a class="reference external" href="http://[hostname]/todo/api/v1.0/tasks/[task_id">http://[hostname]/todo/api/v1.0/tasks/[task_id</a>] Update an existing task
+DELETE  <a class="reference external" href="http://[hostname]/todo/api/v1.0/tasks/[task_id">http://[hostname]/todo/api/v1.0/tasks/[task_id</a>] Delete a task
+The only resource exposed by this service is a &#8220;task&#8221;, which has the following data fields:</p>
+<p>uri: unique URI for the task. String type.
+title: short task description. String type.
+description: long task description. Text type.
+done: task completion state. Boolean type.
+Routing
+In my first RESTful server example (source code here) I have used regular Flask view functions to define all the routes.</p>
+<p>Flask-RESTful provides a Resource base class that can define the routing for one or more HTTP methods for a given URL. For example, to define a User resource with GET, PUT and DELETE methods you would write:</p>
+<p>from flask import Flask
+from flask.ext.restful import Api, Resource</p>
+<p>app = Flask(__name__)
+api = Api(app)</p>
+<dl class="docutils">
+<dt>class UserAPI(Resource):</dt>
+<dd><dl class="first last docutils">
+<dt>def get(self, id):</dt>
+<dd>pass</dd>
+<dt>def put(self, id):</dt>
+<dd>pass</dd>
+<dt>def delete(self, id):</dt>
+<dd>pass</dd>
+</dl>
+</dd>
+</dl>
+<p>api.add_resource(UserAPI, &#8216;/users/&lt;int:id&gt;&#8217;, endpoint = &#8216;user&#8217;)
+The add_resource function registers the routes with the framework using the given endpoint. If an endpoint isn&#8217;t given then Flask-RESTful generates one for you from the class name, but since sometimes the endpoint is needed for functions such as url_for I prefer to make it explicit.</p>
+<p>My ToDo API defines two URLs: /todo/api/v1.0/tasks for the list of tasks, and /todo/api/v1.0/tasks/&lt;int:id&gt; for an individual task. Since Flask-RESTful&#8217;s Resource class can wrap a single URL this server will need two resources:</p>
+<dl class="docutils">
+<dt>class TaskListAPI(Resource):</dt>
+<dd><dl class="first last docutils">
+<dt>def get(self):</dt>
+<dd>pass</dd>
+<dt>def post(self):</dt>
+<dd>pass</dd>
+</dl>
+</dd>
+<dt>class TaskAPI(Resource):</dt>
+<dd><dl class="first last docutils">
+<dt>def get(self, id):</dt>
+<dd>pass</dd>
+<dt>def put(self, id):</dt>
+<dd>pass</dd>
+<dt>def delete(self, id):</dt>
+<dd>pass</dd>
+</dl>
+</dd>
+</dl>
+<p>api.add_resource(TaskListAPI, &#8216;/todo/api/v1.0/tasks&#8217;, endpoint = &#8216;tasks&#8217;)
+api.add_resource(TaskAPI, &#8216;/todo/api/v1.0/tasks/&lt;int:id&gt;&#8217;, endpoint = &#8216;task&#8217;)
+Note that while the method views of TaskListAPI receive no arguments the ones in TaskAPI all receive the id, as specified in the URL under which the resource is registered.</p>
+<p>Request Parsing and Validation
+When I implemented this server in the previous article I did my own validation of the request data. For example, look at how long the PUT handler is in that version:</p>
+<p>&#64;app.route(&#8216;/todo/api/v1.0/tasks/&lt;int:task_id&gt;&#8217;, methods = [&#8216;PUT&#8217;])
+&#64;auth.login_required
+def update_task(task_id):</p>
+<blockquote>
+<div><p>task = filter(lambda t: t[&#8216;id&#8217;] == task_id, tasks)
+if len(task) == 0:</p>
+<blockquote>
+<div>abort(404)</div></blockquote>
+<dl class="docutils">
+<dt>if not request.json:</dt>
+<dd>abort(400)</dd>
+<dt>if &#8216;title&#8217; in request.json and type(request.json[&#8216;title&#8217;]) != unicode:</dt>
+<dd>abort(400)</dd>
+<dt>if &#8216;description&#8217; in request.json and type(request.json[&#8216;description&#8217;]) is not unicode:</dt>
+<dd>abort(400)</dd>
+<dt>if &#8216;done&#8217; in request.json and type(request.json[&#8216;done&#8217;]) is not bool:</dt>
+<dd>abort(400)</dd>
+</dl>
+<p>task[0][&#8216;title&#8217;] = request.json.get(&#8216;title&#8217;, task[0][&#8216;title&#8217;])
+task[0][&#8216;description&#8217;] = request.json.get(&#8216;description&#8217;, task[0][&#8216;description&#8217;])
+task[0][&#8216;done&#8217;] = request.json.get(&#8216;done&#8217;, task[0][&#8216;done&#8217;])
+return jsonify( { &#8216;task&#8217;: make_public_task(task[0]) } )</p>
+</div></blockquote>
+<p>Here I have to make sure the data given with the request is valid before using it, and that makes the function pretty long.</p>
+<p>Flask-RESTful provides a much better way to handle this with the RequestParser class. This class works in a similar way as argparse for command line arguments.</p>
+<p>First, for each resource I define the arguments and how to validate them:</p>
+<p>from flask.ext.restful import reqparse</p>
+<dl class="docutils">
+<dt>class TaskListAPI(Resource):</dt>
+<dd><dl class="first docutils">
+<dt>def __init__(self):</dt>
+<dd><p class="first">self.reqparse = reqparse.RequestParser()
+self.reqparse.add_argument(&#8216;title&#8217;, type = str, required = True,</p>
+<blockquote>
+<div>help = &#8216;No task title provided&#8217;, location = &#8216;json&#8217;)</div></blockquote>
+<p class="last">self.reqparse.add_argument(&#8216;description&#8217;, type = str, default = &#8220;&#8221;, location = &#8216;json&#8217;)
+super(TaskListAPI, self).__init__()</p>
+</dd>
+</dl>
+<p class="last"># ...</p>
+</dd>
+<dt>class TaskAPI(Resource):</dt>
+<dd><dl class="first docutils">
+<dt>def __init__(self):</dt>
+<dd>self.reqparse = reqparse.RequestParser()
+self.reqparse.add_argument(&#8216;title&#8217;, type = str, location = &#8216;json&#8217;)
+self.reqparse.add_argument(&#8216;description&#8217;, type = str, location = &#8216;json&#8217;)
+self.reqparse.add_argument(&#8216;done&#8217;, type = bool, location = &#8216;json&#8217;)
+super(TaskAPI, self).__init__()</dd>
+</dl>
+<p class="last"># ...</p>
+</dd>
+</dl>
+<p>In the TaskListAPI resource the POST method is the only one the receives arguments. The title argument is required here, so I included an error message that Flask-RESTful will send as a response to the client when the field is missing. The description field is optional, and when it is missing a default value of an empty string will be used. One interesting aspect of the RequestParser class is that by default it looks for fields in request.values, so the location optional argument must be set to indicate that the fields are coming in request.json.</p>
+<p>The request parser for the TaskAPI is constructed in a similar way, but has a few differences. In this case it is the PUT method that will need to parse arguments, and for this method all the arguments are optional, including the done field that was not part of the request in the other resource.</p>
+<p>Now that the request parsers are initialized, parsing and validating a request is pretty easy. For example, note how much simpler the TaskAPI.put() method becomes:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>def put(self, id):</dt>
+<dd><p class="first">task = filter(lambda t: t[&#8216;id&#8217;] == id, tasks)
+if len(task) == 0:</p>
+<blockquote>
+<div>abort(404)</div></blockquote>
+<p>task = task[0]
+args = self.reqparse.parse_args()
+for k, v in args.iteritems():</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>if v != None:</dt>
+<dd>task[k] = v</dd>
+</dl>
+</div></blockquote>
+<p class="last">return jsonify( { &#8216;task&#8217;: make_public_task(task) } )</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>A side benefit of letting Flask-RESTful do the validation is that now there is no need to have a handler for the bad request code 400 error, this is all taken care of by the extension.</p>
+<p>Generating Responses
+My original REST server generates the responses using Flask&#8217;s jsonify helper function. Flask-RESTful automatically handles the conversion to JSON, so instead of this:</p>
+<blockquote>
+<div>return jsonify( { &#8216;task&#8217;: make_public_task(task) } )</div></blockquote>
+<p>I can do this:</p>
+<blockquote>
+<div>return { &#8216;task&#8217;: make_public_task(task) }</div></blockquote>
+<p>Flask-RESTful also supports passing a custom status code back when necessary:</p>
+<blockquote>
+<div>return { &#8216;task&#8217;: make_public_task(task) }, 201</div></blockquote>
+<p>But there is more. The make_public_task wrapper from the original server converted a task from its internal representation to the external representation that clients expected. The conversion included removing the id field and adding a uri field in its place. Flask-RESTful provides a helper function to do this in a much more elegant way that not only generates the uri but also does type conversion on the remaining fields:</p>
+<p>from flask.ext.restful import fields, marshal</p>
+<dl class="docutils">
+<dt>task_fields = {</dt>
+<dd>&#8216;title&#8217;: fields.String,
+&#8216;description&#8217;: fields.String,
+&#8216;done&#8217;: fields.Boolean,
+&#8216;uri&#8217;: fields.Url(&#8216;task&#8217;)</dd>
+</dl>
+<p>}</p>
+<dl class="docutils">
+<dt>class TaskAPI(Resource):</dt>
+<dd><p class="first"># ...</p>
+<dl class="last docutils">
+<dt>def put(self, id):</dt>
+<dd># ...
+return { &#8216;task&#8217;: marshal(task, task_fields) }</dd>
+</dl>
+</dd>
+</dl>
+<p>The task_fields structure serves as a template for the marshal function. The fields.Uri type is a special type that generates a URL. The argument it takes is the endpoint (recall that I have used explicit endpoints when I registered the resources specifically so that I can refer to them when needed).</p>
+<p>Authentication
+The routes in the REST server are all protected with HTTP basic authentication. In the original server the protection was added using the decorator provided by the Flask-HTTPAuth extension.</p>
+<p>Since the Resouce class inherits from Flask&#8217;s MethodView, it is possible to attach decorators to the methods by defining a decorators class variable:</p>
+<p>from flask.ext.httpauth import HTTPBasicAuth
+# ...
+auth = HTTPBasicAuth()
+# ...</p>
+<dl class="docutils">
+<dt>class TaskAPI(Resource):</dt>
+<dd>decorators = [auth.login_required]
+# ...</dd>
+<dt>class TaskAPI(Resource):</dt>
+<dd>decorators = [auth.login_required]
+# ...</dd>
+</dl>
 </div>
 
 
@@ -61,10 +246,10 @@
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
   <p class="topless"><a href="first.html"
-                        title="previous chapter">使用 Python 和 Flask 设计(编写) RESTful API</a></p>
+                        title="previous chapter">使用 Python 和 Flask 设计 RESTful API</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="third.html"
-                        title="next chapter">使用 Flask 设计(编写) RESTful 的认证</a></p>
+                        title="next chapter">使用 Flask 设计 RESTful 的认证</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/second.txt"
@@ -94,10 +279,10 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="third.html" title="使用 Flask 设计(编写) RESTful 的认证"
+          <a href="third.html" title="使用 Flask 设计 RESTful 的认证"
              >next</a> |</li>
         <li class="right" >
-          <a href="first.html" title="使用 Python 和 Flask 设计(编写) RESTful API"
+          <a href="first.html" title="使用 Python 和 Flask 设计 RESTful API"
              >previous</a> |</li>
         <li><a href="index.html">Designing a RESTful API with Python and Flask 1.0 documentation</a> &raquo;</li> 
       </ul>

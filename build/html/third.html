@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>使用 Flask 设计(编写) RESTful 的认证 &mdash; Designing a RESTful API with Python and Flask 1.0 documentation</title>
+    <title>使用 Flask 设计 RESTful 的认证 &mdash; Designing a RESTful API with Python and Flask 1.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Designing a RESTful API with Python and Flask 1.0 documentation" href="index.html" />
-    <link rel="prev" title="使用 Flask-RESTful 设计(编写) RESTful API" href="second.html" /> 
+    <link rel="prev" title="使用 Flask-RESTful 设计 RESTful API" href="second.html" /> 
   </head>
   <body>
     <div class="related">
@@ -34,7 +34,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="second.html" title="使用 Flask-RESTful 设计(编写) RESTful API"
+          <a href="second.html" title="使用 Flask-RESTful 设计 RESTful API"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">Designing a RESTful API with Python and Flask 1.0 documentation</a> &raquo;</li> 
       </ul>
@@ -46,7 +46,236 @@
           <div class="body">
             
   <div class="section" id="flask-restful">
-<span id="third"></span><h1>使用 Flask 设计(编写) RESTful 的认证<a class="headerlink" href="#flask-restful" title="Permalink to this headline">¶</a></h1>
+<span id="third"></span><h1>使用 Flask 设计 RESTful 的认证<a class="headerlink" href="#flask-restful" title="Permalink to this headline">¶</a></h1>
+<p>This article is the fourth in my series on RESTful APIs. Today I will be showing you a simple, yet secure way to protect a Flask based API with password or token based authentication.</p>
+<p>This article stands on its own, but if you feel you need to catch up here are the links to the previous articles:</p>
+<p>Designing a RESTful API with Python and Flask
+Writing a Javascript REST client
+Designing a RESTful API using Flask-RESTful
+Example Code
+The code discussed in the following sections is available for you to try and hack. You can find it on github: REST-auth.</p>
+<p>The User Database
+To give this example some resemblance to a real life project I&#8217;m going to use a Flask-SQLAlchemy database to store users.</p>
+<p>The user model will be very simple. For each user a username and a password_hash will be stored.</p>
+<dl class="docutils">
+<dt>class User(db.Model):</dt>
+<dd>__tablename__ = &#8216;users&#8217;
+id = db.Column(db.Integer, primary_key = True)
+username = db.Column(db.String(32), index = True)
+password_hash = db.Column(db.String(128))</dd>
+</dl>
+<p>For security reasons the original password will not be stored, after the hash is calculated during registration it will be discarded. If this user database were to fall in malicious hands it would be extremely hard for the attacker to decode the real passwords from the hashes.</p>
+<p>Passwords should never be stored in the clear in a user database.</p>
+<p>Password Hashing
+To create the password hashes I&#8217;m going to use PassLib, a package dedicated to password hashing.</p>
+<p>PassLib provides several hashing algorithms to choose from. The custom_app_context object is an easy to use option based on the sha256_crypt hashing algorithm.</p>
+<p>To add password hashing and verification two new methods are added to the User model:</p>
+<p>from passlib.apps import custom_app_context as pwd_context</p>
+<dl class="docutils">
+<dt>class User(db.Model):</dt>
+<dd><p class="first"># ...</p>
+<dl class="last docutils">
+<dt>def hash_password(self, password):</dt>
+<dd>self.password_hash = pwd_context.encrypt(password)</dd>
+<dt>def verify_password(self, password):</dt>
+<dd>return pwd_context.verify(password, self.password_hash)</dd>
+</dl>
+</dd>
+</dl>
+<p>The hash_password() method takes a plain password as argument and stores a hash of it with the user. This method is called when a new user is registering with the server, or when the user changes the password.</p>
+<p>The verify_password() method takes a plain password as argument and returns True if the password is correct or False if not. This method is called whenever the user provides credentials and they need to be validated.</p>
+<p>You may ask how can the password be verified if the original password was thrown away and lost forever after it was hashed.</p>
+<p>Hashing algorithms are one-way functions, meaning that they can be used to generate a hash from a password, but they cannot be used in the reverse direction. But these algorithms are deterministic, given the same inputs they will always generate the same output. All PassLib needs to do to verify a password is to hash it with the same function that was used during registration, and then compare the resulting hash against the one stored in the database.</p>
+<p>User Registration
+In this example, a client can register a new user with a POST request to /api/users. The body of the request needs to be a JSON object that has username and password fields.</p>
+<p>The implementation of the Flask route is shown below:</p>
+<p>&#64;app.route(&#8216;/api/users&#8217;, methods = [&#8216;POST&#8217;])
+def new_user():</p>
+<blockquote>
+<div><p>username = request.json.get(&#8216;username&#8217;)
+password = request.json.get(&#8216;password&#8217;)
+if username is None or password is None:</p>
+<blockquote>
+<div>abort(400) # missing arguments</div></blockquote>
+<dl class="docutils">
+<dt>if User.query.filter_by(username = username).first() is not None:</dt>
+<dd>abort(400) # existing user</dd>
+</dl>
+<p>user = User(username = username)
+user.hash_password(password)
+db.session.add(user)
+db.session.commit()
+return jsonify({ &#8216;username&#8217;: user.username }), 201, {&#8216;Location&#8217;: url_for(&#8216;get_user&#8217;, id = user.id, _external = True)}</p>
+</div></blockquote>
+<p>This function is extremely simple. The username and password arguments are obtained from the JSON input coming with the request and then validated.</p>
+<p>If the arguments are valid then a new User instance is created. The username is assigned to it, and the password is hashed using the hash_password() method. The user is finally written to the database.</p>
+<p>The body of the response shows the user representation as a JSON object, with a status code of 201 and a Location header pointing to the URI of the newly created user.</p>
+<p>Note: the implementation of the get_user endpoint is now shown here, you can find it in the full example on github.</p>
+<p>Here is an example user registration request sent from curl:</p>
+<p>$ curl -i -X POST -H &#8220;Content-Type: application/json&#8221; -d &#8216;{&#8220;username&#8221;:&#8221;miguel&#8221;,&#8221;password&#8221;:&#8221;python&#8221;}&#8217; <a class="reference external" href="http://127.0.0.1:5000/api/users">http://127.0.0.1:5000/api/users</a>
+HTTP/1.0 201 CREATED
+Content-Type: application/json
+Content-Length: 27
+Location: <a class="reference external" href="http://127.0.0.1:5000/api/users/1">http://127.0.0.1:5000/api/users/1</a>
+Server: Werkzeug/0.9.4 Python/2.7.3
+Date: Thu, 28 Nov 2013 19:56:39 GMT</p>
+<dl class="docutils">
+<dt>{</dt>
+<dd>&#8220;username&#8221;: &#8220;miguel&#8221;</dd>
+</dl>
+<p>}
+Note that in a real application this would be done over secure HTTP. There is no point in going through the effort of protecting the API if the login credentials are going to travel through the network in clear text.</p>
+<p>Password Based Authentication
+Now let&#8217;s assume there is a resource exposed by this API that needs to be available only to registered users. This resource is accessed at the /api/resource endpoint.</p>
+<p>To protect this resource I&#8217;m going to use HTTP Basic Authentication, but instead of implementing this protocol by hand I&#8217;m going to let the Flask-HTTPAuth extension do it for me.</p>
+<p>Using Flask-HTTPAuth an endpoint is protected by adding the login_required decorator to it:</p>
+<p>from flask.ext.httpauth import HTTPBasicAuth
+auth = HTTPBasicAuth()</p>
+<p>&#64;app.route(&#8216;/api/resource&#8217;)
+&#64;auth.login_required
+def get_resource():</p>
+<blockquote>
+<div>return jsonify({ &#8216;data&#8217;: &#8216;Hello, %s!&#8217; % g.user.username })</div></blockquote>
+<p>But of course Flask-HTTPAuth needs to be given some more information to know how to validate user credentials, and for this there are several options depending on the level of security implemented by the application.</p>
+<p>The option that gives the maximum flexibility (and the only that can accomodate PassLib hashes) is implemented through the verify_password callback, which is given the username and password and is supposed to return True if the combination is valid or False if not. Flask-HTTPAuth invokes this callback function whenever it needs to validate a username and password pair.</p>
+<p>An implementation of the verify_password callback for the example API is shown below:</p>
+<p>&#64;auth.verify_password
+def verify_password(username, password):</p>
+<blockquote>
+<div><p>user = User.query.filter_by(username = username).first()
+if not user or not user.verify_password(password):</p>
+<blockquote>
+<div>return False</div></blockquote>
+<p>g.user = user
+return True</p>
+</div></blockquote>
+<p>This function finds the user by the username, then verifies the password using the verify_password() method. If the credentials are valid then the user is stored in Flask&#8217;s g object so that the view function can use it.</p>
+<p>Here is an example curl request that gets the protected resource for the user registered above:</p>
+<p>$ curl -u miguel:python -i -X GET http://127.0.0.1:5000/api/resource
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 30
+Server: Werkzeug/0.9.4 Python/2.7.3
+Date: Thu, 28 Nov 2013 20:02:25 GMT</p>
+<dl class="docutils">
+<dt>{</dt>
+<dd>&#8220;data&#8221;: &#8220;Hello, miguel!&#8221;</dd>
+</dl>
+<p>}
+If an incorrect login is used, then this is what happens:</p>
+<p>$ curl -u miguel:ruby -i -X GET http://127.0.0.1:5000/api/resource
+HTTP/1.0 401 UNAUTHORIZED
+Content-Type: text/html; charset=utf-8
+Content-Length: 19
+WWW-Authenticate: Basic realm=&#8221;Authentication Required&#8221;
+Server: Werkzeug/0.9.4 Python/2.7.3
+Date: Thu, 28 Nov 2013 20:03:18 GMT</p>
+<p>Unauthorized Access
+Once again I feel the need to reiterate that in a real application the API should be available on secure HTTP only.</p>
+<p>Token Based Authentication
+Having to send the username and the password with every request is inconvenient and can be seen as a security risk even if the transport is secure HTTP, since the client application must have those credentials stored without encryption to be able to send them with the requests.</p>
+<p>An improvement over the previous solution is to use a token to authenticate requests.</p>
+<p>The idea is that the client application exchanges authentication credentials for an authentication token, and in subsequent requests just sends this token.</p>
+<p>Tokens are usually given out with an expiration time, after which they become invalid and a new token needs to be obtained. The potential damage that can be caused if a token is leaked is much smaller due to their short life span.</p>
+<p>There are many ways to implement tokens. A straightforward implementation is to generate a random sequence of characters of certain length that is stored with the user and the password in the database, possibly with an expiration date as well. The token then becomes sort of a plain text password, in that can be easily verified with a string comparison, plus a check of its expiration date.</p>
+<p>A more elaborated implementation that requires no server side storage is to use a cryptographically signed message as a token. This has the advantage that the information related to the token, namely the user for which the token was generated, is encoded in the token itself and protected against tampering with a strong cryptographic signature.</p>
+<p>Flask uses a similar approach to write secure cookies. This implementation is based on a package called itsdangerous, which I will also use here.</p>
+<p>The token generation and verification can be implemented as additional methods in the User model:</p>
+<p>from itsdangerous import TimedJSONWebSignatureSerializer as Serializer</p>
+<dl class="docutils">
+<dt>class User(db.Model):</dt>
+<dd><p class="first"># ...</p>
+<dl class="docutils">
+<dt>def generate_auth_token(self, expiration = 600):</dt>
+<dd>s = Serializer(app.config[&#8216;SECRET_KEY&#8217;], expires_in = expiration)
+return s.dumps({ &#8216;id&#8217;: self.id })</dd>
+</dl>
+<p>&#64;staticmethod
+def verify_auth_token(token):</p>
+<blockquote class="last">
+<div><p>s = Serializer(app.config[&#8216;SECRET_KEY&#8217;])
+try:</p>
+<blockquote>
+<div>data = s.loads(token)</div></blockquote>
+<dl class="docutils">
+<dt>except SignatureExpired:</dt>
+<dd>return None # valid token, but expired</dd>
+<dt>except BadSignature:</dt>
+<dd>return None # invalid token</dd>
+</dl>
+<p>user = User.query.get(data[&#8216;id&#8217;])
+return user</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>In the generate_auth_token() method the token is an encrypted version of a dictionary that has the id of the user. The token will also have an expiration time embedded in it, which by default will be of ten minutes (600 seconds).</p>
+<p>The verification is implemented in a verify_auth_token() static method. A static method is used because the user will only be known once the token is decoded. If the token can be decoded then the id encoded in it is used to load the user, and that user is returned.</p>
+<p>The API needs a new endpoint that the client can use to request a token:</p>
+<p>&#64;app.route(&#8216;/api/token&#8217;)
+&#64;auth.login_required
+def get_auth_token():</p>
+<blockquote>
+<div>token = g.user.generate_auth_token()
+return jsonify({ &#8216;token&#8217;: token.decode(&#8216;ascii&#8217;) })</div></blockquote>
+<p>Note that this endpoint is protected with the auth.login_required decorator from Flask-HTTPAuth, which requires that username and password are provided.</p>
+<p>What remains is to decide how the client is to include this token in a request.</p>
+<p>The HTTP Basic Authentication protocol does not specifically require that usernames and passwords are used for authentication, these two fields in the HTTP header can be used to transport any kind of authentication information. For token based authentication the token can be sent as a username, and the password field can be ignored.</p>
+<p>This means that now the server can get some requests authenticated with username and password, while others authenticated with an authentication token. The verify_password callback needs to support both authentication styles:</p>
+<p>&#64;auth.verify_password
+def verify_password(username_or_token, password):</p>
+<blockquote>
+<div><p># first try to authenticate by token
+user = User.verify_auth_token(username_or_token)
+if not user:</p>
+<blockquote>
+<div><p># try to authenticate with username/password
+user = User.query.filter_by(username = username_or_token).first()
+if not user or not user.verify_password(password):</p>
+<blockquote>
+<div>return False</div></blockquote>
+</div></blockquote>
+<p>g.user = user
+return True</p>
+</div></blockquote>
+<p>This new version of the verify_password callback attempts authentication twice. First it tries to use the username argument as a token. If that doesn&#8217;t work, then username and password are verified as before.</p>
+<p>The following curl request gets an authentication token:</p>
+<p>$ curl -u miguel:python -i -X GET http://127.0.0.1:5000/api/token
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 139
+Server: Werkzeug/0.9.4 Python/2.7.3
+Date: Thu, 28 Nov 2013 20:04:15 GMT</p>
+<dl class="docutils">
+<dt>{</dt>
+<dd>&#8220;token&#8221;: &#8220;eyJhbGciOiJIUzI1NiIsImV4cCI6MTM4NTY2OTY1NSwiaWF0IjoxMzg1NjY5MDU1fQ.eyJpZCI6MX0.XbOEFJkhjHJ5uRINh2JA1BPzXjSohKYDRT472wGOvjc&#8221;</dd>
+</dl>
+<p>}
+Now the protected resource can be obtained authenticating with the token:</p>
+<p>$ curl -u eyJhbGciOiJIUzI1NiIsImV4cCI6MTM4NTY2OTY1NSwiaWF0IjoxMzg1NjY5MDU1fQ.eyJpZCI6MX0.XbOEFJkhjHJ5uRINh2JA1BPzXjSohKYDRT472wGOvjc:unused -i -X GET http://127.0.0.1:5000/api/resource
+HTTP/1.0 200 OK
+Content-Type: application/json
+Content-Length: 30
+Server: Werkzeug/0.9.4 Python/2.7.3
+Date: Thu, 28 Nov 2013 20:05:08 GMT</p>
+<dl class="docutils">
+<dt>{</dt>
+<dd>&#8220;data&#8221;: &#8220;Hello, miguel!&#8221;</dd>
+</dl>
+<p>}
+Note that in this last request the password is written as the word unused. The password in this request can be anything, since it isn&#8217;t used.</p>
+<p>OAuth Authentication
+When talking about RESTful authentication the OAuth protocol is usually mentioned.</p>
+<p>So what is OAuth?</p>
+<p>OAuth can be many things. It is most commonly used to allow an application (the consumer) to access data or services that the user (the resource owner) has with another service (the provider), and this is done in a way that prevents the consumer from knowing the login credentials that the user has with the provider.</p>
+<p>For example, consider a website or application that asks you for permission to access your Facebook account and post something to your timeline. In this example you are the resource holder (you own your Facebook timeline), the third party application is the consumer and Facebook is the provider. Even if you grant access and the consumer application writes to your timeline, it never sees your Facebook login information.</p>
+<p>This usage of OAuth does not apply to a client/server RESTful API. Something like this would only make sense if your RESTful API can be accessed by third party applications (consumers).</p>
+<p>In the case of a direct client/server communication there is no need to hide login credentials, the client (curl in the examples above) receives the credentials from the user and uses them to authenticate requests with the server directly.</p>
+<p>OAuth can do this as well, and then it becomes a more elaborated version of the example described in this article. This is commonly referred to as the &#8220;two-legged OAuth&#8221;, to contrast it to the more common &#8220;three-legged OAuth&#8221;.</p>
+<p>If you decide to support OAuth there are a few implementations available for Python listed in the OAuth website.</p>
+<p>Conclusion
+I hope this article helped you understand how to implement user authentication for your API.</p>
+<p>Once again, you can download and play with a fully working implementation of the server described above. You can find the software on my github site: REST-auth.</p>
+<p>If you have any questions or found any flaws in the solution I presented please let me know below in the comments.</p>
 </div>
 
 
@@ -57,7 +286,7 @@
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
   <p class="topless"><a href="second.html"
-                        title="previous chapter">使用 Flask-RESTful 设计(编写) RESTful API</a></p>
+                        title="previous chapter">使用 Flask-RESTful 设计 RESTful API</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/third.txt"
@@ -87,7 +316,7 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="second.html" title="使用 Flask-RESTful 设计(编写) RESTful API"
+          <a href="second.html" title="使用 Flask-RESTful 设计 RESTful API"
              >previous</a> |</li>
         <li><a href="index.html">Designing a RESTful API with Python and Flask 1.0 documentation</a> &raquo;</li> 
       </ul>
