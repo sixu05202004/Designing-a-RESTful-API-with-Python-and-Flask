@@ -70,15 +70,15 @@
 <p>REST 架构的最初目的是适应万维网的 HTTP 协议。</p>
 <p>RESTful web services 概念的核心就是“资源”。 资源可以用 <a class="reference external" href="https://en.wikipedia.org/wiki/Uniform_resource_identifier">URI</a> 来表示。客户端使用 HTTP 协议定义的方法来发送请求到这些 URIs，当然可能会导致这些被访问的”资源“状态的改变。</p>
 <p>HTTP 标准的方法有如下:</p>
-<div class="highlight-python"><div class="highlight"><pre>==========  ==============  ==================================
-HTTP 方法   行为            示例
-==========  ==============  ==================================
-GET         获取资源的信息  http://example.com/api/orders
-GET         获取资源的信息  http://example.com/api/orders/123
-POST        创建新资源      http://example.com/api/orders
-PUT         更新资源        http://example.com/api/orders/123
-DELETE      删除资源        http://example.com/api/orders/123
-==========  ==============  ==================================
+<div class="highlight-python"><div class="highlight"><pre>==========  =====================  ==================================
+HTTP 方法   行为                   示例
+==========  =====================  ==================================
+GET         获取资源的信息         http://example.com/api/orders
+GET         获取某个特定资源的信息 http://example.com/api/orders/123
+POST        创建新资源             http://example.com/api/orders
+PUT         更新资源               http://example.com/api/orders/123
+DELETE      删除资源               http://example.com/api/orders/123
+==========  ====================== ==================================
 </pre></div>
 </div>
 <p>REST 设计不需要特定的数据格式。在请求中数据可以以 <a class="reference external" href="http://en.wikipedia.org/wiki/JSON">JSON</a> 形式, 或者有时候作为 url 中查询参数项。</p>
@@ -115,7 +115,7 @@ DELETE      http://[hostname]/todo/api/v1.0/tasks/[task_id]  删除任务
 <h2>Flask 框架的简介<a class="headerlink" href="#flask" title="Permalink to this headline">¶</a></h2>
 <p>如果你读过 <a class="reference external" href="http://www.pythondoc.com/flask-mega-tutorial/index.html">Flask Mega-Tutorial 系列</a>，就会知道 Flask 是一个简单却十分强大的 Python web 框架。</p>
 <p>在我们深入研究 web services 的细节之前，让我们回顾一下一个普通的 Flask Web 应用程序的结构。</p>
-<p>我会首先假设你知道 Python 在你的平台上工作的基本知识。 我讲讲解的例子是工作在一个类 Unix 操作系统。简而言之，这意味着它们能工作在 Linux，Mac OS X 和 Windows(如果你使用Cygwin)。
+<p>我会首先假设你知道 Python 在你的平台上工作的基本知识。 我将讲解的例子是工作在一个类 Unix 操作系统。简而言之，这意味着它们能工作在 Linux，Mac OS X 和 Windows(如果你使用Cygwin)。
 如果你使用 Windows 上原生的 Python 版本的话，命令会有所不同。</p>
 <p>让我们开始在一个虚拟环境上安装 Flask。如果你的系统上没有 virtualenv，你可以从 <a class="reference external" href="https://pypi.python.org/pypi/virtualenv">https://pypi.python.org/pypi/virtualenv</a> 上下载:</p>
 <div class="highlight-python"><div class="highlight"><pre>$ mkdir todo-api
@@ -260,15 +260,16 @@ Date: Mon, 20 May 2013 05:21:52 GMT
 &lt;p&gt;The requested URL was not found on the server.&lt;/p&gt;&lt;p&gt;If you     entered the URL manually please check your spelling and try again.&lt;/p&gt;
 </pre></div>
 </div>
-<p>当我们请求 id #2 的资源时候，我们获取到了，但是当我们请求 #3 的时候返回了 404 错误。有关错误奇怪的是返回的是 HTML 信息而不是 JSON，这是因为 Flask 按照默认方式生成 404 响应。由于这是一个 Web service 客户端希望我们总是 以 JSON 格式回应，所以我们需要改善我们的 404 错误处理程序:</p>
-<div class="highlight-python"><div class="highlight"><pre>from flask import make_response
+<p>当我们请求 id #2 的资源时候，我们获取到了，但是当我们请求 #3 的时候返回了 404 错误。有关错误奇怪的是返回的是 HTML 信息而不是 JSON，这是因为 Flask 按照默认方式生成 404 响应。由于这是一个 Web service 客户端希望我们总是以 JSON 格式回应，所以我们需要改善我们的 404 错误处理程序:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">make_response</span>
 
-@app.errorhandler(404)
-def not_found(error):
-    return make_response(jsonify({&#39;error&#39;: &#39;Not found&#39;}), 404)
-And we get a much more API friendly error response:
-
-$ curl -i http://localhost:5000/todo/api/v1.0/tasks/3
+<span class="nd">@app.errorhandler</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">not_found</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;error&#39;</span><span class="p">:</span> <span class="s">&#39;Not found&#39;</span><span class="p">}),</span> <span class="mi">404</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>我们会得到一个友好的错误提示:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -i http://localhost:5000/todo/api/v1.0/tasks/3
 HTTP/1.0 404 NOT FOUND
 Content-Type: application/json
 Content-Length: 26
@@ -297,279 +298,255 @@ Date: Mon, 20 May 2013 05:36:54 GMT
     <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">task</span><span class="p">}),</span> <span class="mi">201</span>
 </pre></div>
 </div>
-<p>Adding a new task is also pretty easy. The request.json will have the request data, but only if it came marked as JSON. If the data isn&#8217;t there, or if it is there, but we are missing a title item then we return an error code 400, which is the code for the bad request.</p>
-<p>We then create a new task dictionary, using the id of the last task plus one (a cheap way to guarantee unique ids in our simple database). We tolerate a missing description field, and we assume the done field will always start set to False.</p>
-<p>We append the new task to our tasks array, and then respond to the client with the added task and send back a status code 201, which HTTP defines as the code for &#8220;Created&#8221;.</p>
-<p>To test this new function we can use the following curl command:</p>
-<p>$ curl -i -H &#8220;Content-Type: application/json&#8221; -X POST -d &#8216;{&#8220;title&#8221;:&#8221;Read a book&#8221;}&#8217; <a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks">http://localhost:5000/todo/api/v1.0/tasks</a>
+<p>添加一个新的任务也是相当容易地。只有当请求以 JSON 格式形式，request.json 才会有请求的数据。如果没有数据，或者存在数据但是缺少 title 项，我们将会返回 400，这是表示请求无效。</p>
+<p>接着我们会创建一个新的任务字典，使用最后一个任务的 id + 1 作为该任务的 id。我们允许 description 字段缺失，并且假设 done 字段设置成 False。</p>
+<p>我们把新的任务添加到我们的任务数组中，并且把新添加的任务和状态 201 响应给客户端。</p>
+<p>使用如下的 curl 命令来测试这个新的函数:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -i -H &quot;Content-Type: application/json&quot; -X POST -d &#39;{&quot;title&quot;:&quot;Read a book&quot;}&#39; http://localhost:5000/todo/api/v1.0/tasks
 HTTP/1.0 201 Created
 Content-Type: application/json
 Content-Length: 104
 Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 05:56:21 GMT</p>
-<dl class="docutils">
-<dt>{</dt>
-<dd><dl class="first docutils">
-<dt>&#8220;task&#8221;: {</dt>
-<dd>&#8220;description&#8221;: &#8220;&#8221;,
-&#8220;done&#8221;: false,
-&#8220;id&#8221;: 3,
-&#8220;title&#8221;: &#8220;Read a book&#8221;</dd>
-</dl>
-<p class="last">}</p>
-</dd>
-</dl>
-<p>}
-Note: if you are on Windows and use the Cygwin version of curl from bash then the above command will work just fine. However, if you are using the native version of curl from the regular command prompt there is a little dance that needs to be done to send double quotes inside the body of a request:</p>
-<p>curl -i -H &#8220;Content-Type: application/json&#8221; -X POST -d &#8220;{&#8220;&#8221;&#8220;title&#8221;&#8220;&#8221;:&#8221;&#8220;&#8221;Read a book&#8221;&#8220;&#8221;}&#8221; <a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks">http://localhost:5000/todo/api/v1.0/tasks</a>
-Essentially on Windows you have to use double quotes to enclose the body of the request, and then inside it you escape a double quote by writing three of them in sequence.</p>
-<p>Of course after this request completed we can obtain the updated list of tasks:</p>
-<p>$ curl -i <a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks">http://localhost:5000/todo/api/v1.0/tasks</a>
+Date: Mon, 20 May 2013 05:56:21 GMT
+
+{
+  &quot;task&quot;: {
+    &quot;description&quot;: &quot;&quot;,
+    &quot;done&quot;: false,
+    &quot;id&quot;: 3,
+    &quot;title&quot;: &quot;Read a book&quot;
+  }
+}
+</pre></div>
+</div>
+<p>注意：如果你在 Windows 上并且运行 Cygwin 版本的 curl，上面的命令不会有任何问题。然而，如果你使用原生的 curl，命令会有些不同:</p>
+<div class="highlight-python"><div class="highlight"><pre>curl -i -H &quot;Content-Type: application/json&quot; -X POST -d &quot;{&quot;&quot;&quot;title&quot;&quot;&quot;:&quot;&quot;&quot;Read a book&quot;&quot;&quot;}&quot; http://localhost:5000/todo/api/v1.0/tasks
+</pre></div>
+</div>
+<p>当然在完成这个请求后，我们可以得到任务的更新列表:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -i http://localhost:5000/todo/api/v1.0/tasks
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 423
 Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 05:57:44 GMT</p>
-<dl class="docutils">
-<dt>{</dt>
-<dd><dl class="first docutils">
-<dt>&#8220;tasks&#8221;: [</dt>
-<dd><dl class="first docutils">
-<dt>{</dt>
-<dd>&#8220;description&#8221;: &#8220;Milk, Cheese, Pizza, Fruit, Tylenol&#8221;,
-&#8220;done&#8221;: false,
-&#8220;id&#8221;: 1,
-&#8220;title&#8221;: &#8220;Buy groceries&#8221;</dd>
-</dl>
-<p>},
-{</p>
-<blockquote>
-<div>&#8220;description&#8221;: &#8220;Need to find a good Python tutorial on the web&#8221;,
-&#8220;done&#8221;: false,
-&#8220;id&#8221;: 2,
-&#8220;title&#8221;: &#8220;Learn Python&#8221;</div></blockquote>
-<p>},
-{</p>
-<blockquote>
-<div>&#8220;description&#8221;: &#8220;&#8221;,
-&#8220;done&#8221;: false,
-&#8220;id&#8221;: 3,
-&#8220;title&#8221;: &#8220;Read a book&#8221;</div></blockquote>
-<p class="last">}</p>
-</dd>
-</dl>
-<p class="last">]</p>
-</dd>
-</dl>
-<p>}
-The remaining two functions of our web service are shown below:</p>
-<p>&#64;app.route(&#8216;/todo/api/v1.0/tasks/&lt;int:task_id&gt;&#8217;, methods=[&#8216;PUT&#8217;])
-def update_task(task_id):</p>
-<blockquote>
-<div><p>task = filter(lambda t: t[&#8216;id&#8217;] == task_id, tasks)
-if len(task) == 0:</p>
-<blockquote>
-<div>abort(404)</div></blockquote>
-<dl class="docutils">
-<dt>if not request.json:</dt>
-<dd>abort(400)</dd>
-<dt>if &#8216;title&#8217; in request.json and type(request.json[&#8216;title&#8217;]) != unicode:</dt>
-<dd>abort(400)</dd>
-<dt>if &#8216;description&#8217; in request.json and type(request.json[&#8216;description&#8217;]) is not unicode:</dt>
-<dd>abort(400)</dd>
-<dt>if &#8216;done&#8217; in request.json and type(request.json[&#8216;done&#8217;]) is not bool:</dt>
-<dd>abort(400)</dd>
-</dl>
-<p>task[0][&#8216;title&#8217;] = request.json.get(&#8216;title&#8217;, task[0][&#8216;title&#8217;])
-task[0][&#8216;description&#8217;] = request.json.get(&#8216;description&#8217;, task[0][&#8216;description&#8217;])
-task[0][&#8216;done&#8217;] = request.json.get(&#8216;done&#8217;, task[0][&#8216;done&#8217;])
-return jsonify({&#8216;task&#8217;: task[0]})</p>
-</div></blockquote>
-<p>&#64;app.route(&#8216;/todo/api/v1.0/tasks/&lt;int:task_id&gt;&#8217;, methods=[&#8216;DELETE&#8217;])
-def delete_task(task_id):</p>
-<blockquote>
-<div><p>task = filter(lambda t: t[&#8216;id&#8217;] == task_id, tasks)
-if len(task) == 0:</p>
-<blockquote>
-<div>abort(404)</div></blockquote>
-<p>tasks.remove(task[0])
-return jsonify({&#8216;result&#8217;: True})</p>
-</div></blockquote>
-<p>The delete_task function should have no surprises. For the update_task function we are trying to prevent bugs by doing exhaustive checking of the input arguments. We need to make sure that anything that the client provided us is in the expected format before we incorporate it into our database.</p>
-<p>A function call that updates task #2 as being done would be done as follows:</p>
-<p>$ curl -i -H &#8220;Content-Type: application/json&#8221; -X PUT -d &#8216;{&#8220;done&#8221;:true}&#8217; <a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks/2">http://localhost:5000/todo/api/v1.0/tasks/2</a>
+Date: Mon, 20 May 2013 05:57:44 GMT
+
+{
+  &quot;tasks&quot;: [
+    {
+      &quot;description&quot;: &quot;Milk, Cheese, Pizza, Fruit, Tylenol&quot;,
+      &quot;done&quot;: false,
+      &quot;id&quot;: 1,
+      &quot;title&quot;: &quot;Buy groceries&quot;
+    },
+    {
+      &quot;description&quot;: &quot;Need to find a good Python tutorial on the web&quot;,
+      &quot;done&quot;: false,
+      &quot;id&quot;: 2,
+      &quot;title&quot;: &quot;Learn Python&quot;
+    },
+    {
+      &quot;description&quot;: &quot;&quot;,
+      &quot;done&quot;: false,
+      &quot;id&quot;: 3,
+      &quot;title&quot;: &quot;Read a book&quot;
+    }
+  ]
+}
+</pre></div>
+</div>
+<p>剩下的两个函数如下所示:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&#39;/todo/api/v1.0/tasks/&lt;int:task_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_task</span><span class="p">(</span><span class="n">task_id</span><span class="p">):</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;title&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s">&#39;title&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">unicode</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;description&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s">&#39;description&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">unicode</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;done&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s">&#39;done&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;title&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;title&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;title&#39;</span><span class="p">])</span>
+    <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;description&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;description&#39;</span><span class="p">])</span>
+    <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;done&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;done&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;done&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+
+<span class="nd">@app.route</span><span class="p">(</span><span class="s">&#39;/todo/api/v1.0/tasks/&lt;int:task_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_task</span><span class="p">(</span><span class="n">task_id</span><span class="p">):</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+    <span class="n">tasks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;result&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>delete_task 函数没有什么特别的。对于 update_task 函数，我们需要严格地检查输入的参数以防止可能的问题。我们需要确保在我们把它更新到数据库之前，任何客户端提供我们的是预期的格式。</p>
+<p>更新任务 #2 的函数调用如下所示:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -i -H &quot;Content-Type: application/json&quot; -X PUT -d &#39;{&quot;done&quot;:true}&#39; http://localhost:5000/todo/api/v1.0/tasks/2
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 170
 Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 07:10:16 GMT</p>
-<dl class="docutils">
-<dt>{</dt>
-<dd><dl class="first docutils">
-<dt>&#8220;task&#8221;: [</dt>
-<dd><dl class="first docutils">
-<dt>{</dt>
-<dd>&#8220;description&#8221;: &#8220;Need to find a good Python tutorial on the web&#8221;,
-&#8220;done&#8221;: true,
-&#8220;id&#8221;: 2,
-&#8220;title&#8221;: &#8220;Learn Python&#8221;</dd>
-</dl>
-<p class="last">}</p>
-</dd>
-</dl>
-<p class="last">]</p>
-</dd>
-</dl>
-<p>}
-Improving the web service interface
-The problem with the current design of the API is that clients are forced to construct URIs from the task identifiers that are returned. This is pretty easy in itself, but it indirectly forces clients to know how these URIs need to be built, and this will prevent us from making changes to URIs in the future.</p>
-<p>Instead of returning task ids we can return the full URI that controls the task, so that clients get the URIs ready to be used. For this we can write a small helper function that generates a &#8220;public&#8221; version of a task to send to the client:</p>
-<p>from flask import url_for</p>
-<dl class="docutils">
-<dt>def make_public_task(task):</dt>
-<dd><p class="first">new_task = {}
-for field in task:</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>if field == &#8216;id&#8217;:</dt>
-<dd>new_task[&#8216;uri&#8217;] = url_for(&#8216;get_task&#8217;, task_id=task[&#8216;id&#8217;], _external=True)</dd>
-<dt>else:</dt>
-<dd>new_task[field] = task[field]</dd>
-</dl>
-</div></blockquote>
-<p class="last">return new_task</p>
-</dd>
-</dl>
-<p>All we are doing here is taking a task from our database and creating a new task that has all the fields except id, which gets replaced with another field called uri, generated with Flask&#8217;s url_for.</p>
-<p>When we return the list of tasks we pass them through this function before sending them to the client:</p>
-<p>&#64;app.route(&#8216;/todo/api/v1.0/tasks&#8217;, methods=[&#8216;GET&#8217;])
-def get_tasks():</p>
-<blockquote>
-<div>return jsonify({&#8216;tasks&#8217;: map(make_public_task, tasks)})</div></blockquote>
-<p>So now this is what the client gets when it retrieves the list of tasks:</p>
-<p>$ curl -i <a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks">http://localhost:5000/todo/api/v1.0/tasks</a>
+Date: Mon, 20 May 2013 07:10:16 GMT
+
+{
+  &quot;task&quot;: [
+    {
+      &quot;description&quot;: &quot;Need to find a good Python tutorial on the web&quot;,
+      &quot;done&quot;: true,
+      &quot;id&quot;: 2,
+      &quot;title&quot;: &quot;Learn Python&quot;
+    }
+  ]
+}
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h2>优化 web service 接口<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>目前 API 的设计的问题就是迫使客户端在任务标识返回后去构造 URIs。这对于服务器是十分简单的，但是间接地迫使客户端知道这些 URIs 是如何构造的，这将会阻碍我们以后变更这些 URIs。</p>
+<p>不直接返回任务的 ids，我们直接返回控制这些任务的完整的 URI，以便客户端可以随时使用这些 URIs。为此，我们可以写一个小的辅助函数生成一个 “公共” 版本任务发送到客户端:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">url_for</span>
+
+<span class="k">def</span> <span class="nf">make_public_task</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+    <span class="n">new_task</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">task</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&#39;id&#39;</span><span class="p">:</span>
+            <span class="n">new_task</span><span class="p">[</span><span class="s">&#39;uri&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">url_for</span><span class="p">(</span><span class="s">&#39;get_task&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="n">task</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">],</span> <span class="n">_external</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_task</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">new_task</span>
+</pre></div>
+</div>
+<p>这里所有做的事情就是从我们数据库中取出任务并且创建一个新的任务，这个任务的 id 字段被替换成通过 Flask 的  url_for 生成的 uri 字段。</p>
+<p>当我们返回所有的任务列表的时候，在发送到客户端之前通过这个函数进行处理:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&#39;/todo/api/v1.0/tasks&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_tasks</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;tasks&#39;</span><span class="p">:</span> <span class="nb">map</span><span class="p">(</span><span class="n">make_public_task</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)})</span>
+</pre></div>
+</div>
+<p>这里就是客户端获取任务列表的时候得到的数据:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -i http://localhost:5000/todo/api/v1.0/tasks
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 406
 Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 18:16:28 GMT</p>
-<dl class="docutils">
-<dt>{</dt>
-<dd><dl class="first docutils">
-<dt>&#8220;tasks&#8221;: [</dt>
-<dd><dl class="first docutils">
-<dt>{</dt>
-<dd>&#8220;title&#8221;: &#8220;Buy groceries&#8221;,
-&#8220;done&#8221;: false,
-&#8220;description&#8221;: &#8220;Milk, Cheese, Pizza, Fruit, Tylenol&#8221;,
-&#8220;uri&#8221;: &#8220;<a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks/1">http://localhost:5000/todo/api/v1.0/tasks/1</a>&#8220;</dd>
-</dl>
-<p>},
-{</p>
-<blockquote>
-<div>&#8220;title&#8221;: &#8220;Learn Python&#8221;,
-&#8220;done&#8221;: false,
-&#8220;description&#8221;: &#8220;Need to find a good Python tutorial on the web&#8221;,
-&#8220;uri&#8221;: &#8220;<a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks/2">http://localhost:5000/todo/api/v1.0/tasks/2</a>&#8220;</div></blockquote>
-<p class="last">}</p>
-</dd>
-</dl>
-<p class="last">]</p>
-</dd>
-</dl>
-<p>}
-We apply this technique to all the other functions and with this we ensure that the client always sees URIs instead of ids.</p>
-<p>Securing a RESTful web service
-Can you believe we are done? Well, we are done with the functionality of our service, but we still have a problem. Our service is open to anybody, and that is a bad thing.</p>
-<p>We have a complete web service that can manage our to do list, but the service in its current state is open to any clients. If a stranger figures out how our API works he or she can write a new client that can access our service and mess with our data.</p>
-<p>Most entry level tutorials ignore security and stop here. In my opinion this is a serious problem that should always be addressed.</p>
-<p>The easiest way to secure our web service is to require clients to provide a username and a password. In a regular web application you would have a login form that posts the credentials, and at that point the server would create a session for the logged in user to continue working, with the session id stored in a cookie in the client browser. Unfortunately doing that here would violate the stateless requirement of REST, so instead we have to ask clients to send their authentication information with every request they send to us.</p>
-<p>With REST we always try to adhere to the HTTP protocol as much as we can. Now that we need to implement authentication we should do so in the context of HTTP, which provides two forms of authentication called Basic and Digest.</p>
-<p>There is a small Flask extension that can help with this, written by no other than yours truly. So let&#8217;s go ahead and install Flask-HTTPAuth:</p>
-<p>$ flask/bin/pip install flask-httpauth
-Let&#8217;s say we want our web service to only be accessible to username miguel and password python. We can setup a Basic HTTP authentication as follows:</p>
-<p>from flask.ext.httpauth import HTTPBasicAuth
-auth = HTTPBasicAuth()</p>
-<p>&#64;auth.get_password
-def get_password(username):</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>if username == &#8216;miguel&#8217;:</dt>
-<dd>return &#8216;python&#8217;</dd>
-</dl>
-<p>return None</p>
-</div></blockquote>
-<p>&#64;auth.error_handler
-def unauthorized():</p>
-<blockquote>
-<div>return make_response(jsonify({&#8216;error&#8217;: &#8216;Unauthorized access&#8217;}), 401)</div></blockquote>
-<p>The get_password function is a callback function that the extension will use to obtain the password for a given user. In a more complex system this function could check a user database, but in this case we just have a single user so there is no need for that.</p>
-<p>The error_handler callback will be used by the extension when it needs to send the unauthorized error code back to the client. Like we did with other error codes, here we customize the response so that is contains JSON instead of HTML.</p>
-<p>With the authentication system setup, all that is left is to indicate which functions need to be protected, by adding the &#64;auth.login_required decorator. For example:</p>
-<p>&#64;app.route(&#8216;/todo/api/v1.0/tasks&#8217;, methods=[&#8216;GET&#8217;])
-&#64;auth.login_required
-def get_tasks():</p>
-<blockquote>
-<div>return jsonify({&#8216;tasks&#8217;: tasks})</div></blockquote>
-<p>If we now try to invoke this function with curl this is what we get:</p>
-<p>$ curl -i <a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks">http://localhost:5000/todo/api/v1.0/tasks</a>
+Date: Mon, 20 May 2013 18:16:28 GMT
+
+{
+  &quot;tasks&quot;: [
+    {
+      &quot;title&quot;: &quot;Buy groceries&quot;,
+      &quot;done&quot;: false,
+      &quot;description&quot;: &quot;Milk, Cheese, Pizza, Fruit, Tylenol&quot;,
+      &quot;uri&quot;: &quot;http://localhost:5000/todo/api/v1.0/tasks/1&quot;
+    },
+    {
+      &quot;title&quot;: &quot;Learn Python&quot;,
+      &quot;done&quot;: false,
+      &quot;description&quot;: &quot;Need to find a good Python tutorial on the web&quot;,
+      &quot;uri&quot;: &quot;http://localhost:5000/todo/api/v1.0/tasks/2&quot;
+    }
+  ]
+}
+</pre></div>
+</div>
+<p>我们将会把上述的方式应用到其它所有的函数上以确保客户端一直看到 URIs 而不是 ids。</p>
+</div>
+<div class="section" id="id3">
+<h2>加强 RESTful web service 的安全性<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>我们已经完成了我们 web service 的大部分功能，但是仍然有一个问题。我们的 web service 对任何人都是公开的，这并不是一个好主意。</p>
+<p>我们有一个可以管理我们的待办事项完整的 web service，但在当前状态下的 web service 是开放给所有的客户端。 如果一个陌生人弄清我们的 API 是如何工作的，他或她可以编写一个客户端访问我们的 web service 并且毁坏我们的数据。</p>
+<p>大部分初级的教程会忽略这个问题并且到此为止。在我看来这是一个很严重的问题，我必须指出。</p>
+<p>确保我们的 web service 安全服务的最简单的方法是要求客户端提供一个用户名和密码。在常规的 web 应用程序会提供一个登录的表单用来认证，并且服务器会创建一个会话为登录的用户以后的操作使用，会话的 id 以 cookie 形式存储在客户端浏览器中。然而 REST 的规则之一就是 “无状态”， 因此我们必须要求客户端在每一次请求中提供认证的信息。</p>
+<p>我们一直试着尽可能地坚持 HTTP 标准协议。既然我们需要实现认证我们需要在 HTTP 上下文中去完成，HTTP 协议提供了两种认证机制: <a class="reference external" href="http://www.ietf.org/rfc/rfc2617.txt">Basic 和 Digest</a>。</p>
+<p>有一个小的 Flask 扩展能够帮助我们，我们可以先安装 Flask-HTTPAuth:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ flask/bin/pip install flask-httpauth
+</pre></div>
+</div>
+<p>比方说，我们希望我们的 web service 只让访问用户名 miguel 和密码 python 的客户端访问。 我们可以设置一个基本的 HTTP 验证如下:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask.ext.httpauth</span> <span class="kn">import</span> <span class="n">HTTPBasicAuth</span>
+<span class="n">auth</span> <span class="o">=</span> <span class="n">HTTPBasicAuth</span><span class="p">()</span>
+
+<span class="nd">@auth.get_password</span>
+<span class="k">def</span> <span class="nf">get_password</span><span class="p">(</span><span class="n">username</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">username</span> <span class="o">==</span> <span class="s">&#39;miguel&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">&#39;python&#39;</span>
+    <span class="k">return</span> <span class="bp">None</span>
+
+<span class="nd">@auth.error_handler</span>
+<span class="k">def</span> <span class="nf">unauthorized</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;error&#39;</span><span class="p">:</span> <span class="s">&#39;Unauthorized access&#39;</span><span class="p">}),</span> <span class="mi">401</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>get_password 函数是一个回调函数，Flask-HTTPAuth 使用它来获取给定用户的密码。在一个更复杂的系统中，这个函数是需要检查一个用户数据库，但是在我们的例子中只有单一的用户因此没有必要。</p>
+<p>error_handler 回调函数是用于给客户端发送未授权错误代码。像我们处理其它的错误代码，这里我们定制一个包含 JSON 数据格式而不是 HTML 的响应。</p>
+<p>随着认证系统的建立，所剩下的就是把需要认证的函数添加 &#64;auth.login_required 装饰器。例如:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&#39;/todo/api/v1.0/tasks&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth.login_required</span>
+<span class="k">def</span> <span class="nf">get_tasks</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;tasks&#39;</span><span class="p">:</span> <span class="n">tasks</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>如果现在要尝试使用 curl 调用这个函数我们会得到:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -i http://localhost:5000/todo/api/v1.0/tasks
 HTTP/1.0 401 UNAUTHORIZED
 Content-Type: application/json
 Content-Length: 36
-WWW-Authenticate: Basic realm=&#8221;Authentication Required&#8221;
+WWW-Authenticate: Basic realm=&quot;Authentication Required&quot;
 Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 06:41:14 GMT</p>
-<dl class="docutils">
-<dt>{</dt>
-<dd>&#8220;error&#8221;: &#8220;Unauthorized access&#8221;</dd>
-</dl>
-<p>}
-To be able to invoke this function we have to send our credentials:</p>
-<p>$ curl -u miguel:python -i http://localhost:5000/todo/api/v1.0/tasks
+Date: Mon, 20 May 2013 06:41:14 GMT
+
+{
+  &quot;error&quot;: &quot;Unauthorized access&quot;
+}
+</pre></div>
+</div>
+<p>为了能够调用这个函数我们必须发送我们的认证凭据:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ curl -u miguel:python -i http://localhost:5000/todo/api/v1.0/tasks
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 316
 Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 06:46:45 GMT</p>
-<dl class="docutils">
-<dt>{</dt>
-<dd><dl class="first docutils">
-<dt>&#8220;tasks&#8221;: [</dt>
-<dd><dl class="first docutils">
-<dt>{</dt>
-<dd>&#8220;title&#8221;: &#8220;Buy groceries&#8221;,
-&#8220;done&#8221;: false,
-&#8220;description&#8221;: &#8220;Milk, Cheese, Pizza, Fruit, Tylenol&#8221;,
-&#8220;uri&#8221;: &#8220;<a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks/1">http://localhost:5000/todo/api/v1.0/tasks/1</a>&#8220;</dd>
-</dl>
-<p>},
-{</p>
-<blockquote>
-<div>&#8220;title&#8221;: &#8220;Learn Python&#8221;,
-&#8220;done&#8221;: false,
-&#8220;description&#8221;: &#8220;Need to find a good Python tutorial on the web&#8221;,
-&#8220;uri&#8221;: &#8220;<a class="reference external" href="http://localhost:5000/todo/api/v1.0/tasks/2">http://localhost:5000/todo/api/v1.0/tasks/2</a>&#8220;</div></blockquote>
-<p class="last">}</p>
-</dd>
-</dl>
-<p class="last">]</p>
-</dd>
-</dl>
-<p>}
-The authentication extension gives us the freedom to choose which functions in the service are open and which are protected.</p>
-<p>To ensure the login information is secure the web service should be exposed in a HTTP Secure server (i.e. <a class="reference external" href="https://">https://</a>...) as this encrypts all the communications between client and server and prevents a third party from seeing the authentication credentials in transit.</p>
-<p>Unfortunately web browsers have the nasty habit of showing an ugly login dialog box when a request comes back with a 401 error code. This happens even for background requests, so if we were to implement a web browser client with our current web server we would need to jump through hoops to prevent browsers from showing their authentication dialogs and let our client application handle the login.</p>
-<p>A simple trick to distract web browsers is to return an error code other than 401. An alternative error code favored by many is 403, which is the &#8220;Forbidden&#8221; error. While this is a close enough error, it sort of violates the HTTP standard, so it is not the proper thing to do if full compliance is necessary. In particular this would be a bad idea if the client application is not a web browser. But for cases where server and client are developed together it saves a lot of trouble. The simple change that we can make to implement this trick is to replace the 401 with a 403:</p>
-<p>&#64;auth.error_handler
-def unauthorized():</p>
-<blockquote>
-<div>return make_response(jsonify({&#8216;error&#8217;: &#8216;Unauthorized access&#8217;}), 403)</div></blockquote>
-<p>Of course if we do this we will need the client application to look for 403 errors as well.</p>
-<p>Possible improvements
-There are a number of ways in which this little web service we have built today can be improved.</p>
-<p>For starters, a real web service should be backed by a real database. The memory data structure that we are using is very limited in functionality and should not be used for a real application.</p>
-<p>Another area in which an improvement could be made is in handling multiple users. If the system supports multiple users the authentication credentials sent by the client could be used to obtain user specific to do lists. In such a system we would have a second resource, which would be the users. A POST request on the users resource would represent a new user registering for the service. A GET request would return user information back to the client. A PUT request would update the user information, maybe updating an email address. A DELETE request would delete the user account.</p>
-<p>The GET request that retrieves the task list could be expanded in a couple of ways. First, this request could take optional pagination arguments, so that a client can request a portion of the list. Another way to make this function more useful would be to allow filtering by certain criteria. For example, a client might want to see only completed tasks, or only tasks with a title that begins with the letter A. All these elements can be added to the URL as arguments.</p>
+Date: Mon, 20 May 2013 06:46:45 GMT
+
+{
+  &quot;tasks&quot;: [
+    {
+      &quot;title&quot;: &quot;Buy groceries&quot;,
+      &quot;done&quot;: false,
+      &quot;description&quot;: &quot;Milk, Cheese, Pizza, Fruit, Tylenol&quot;,
+      &quot;uri&quot;: &quot;http://localhost:5000/todo/api/v1.0/tasks/1&quot;
+    },
+    {
+      &quot;title&quot;: &quot;Learn Python&quot;,
+      &quot;done&quot;: false,
+      &quot;description&quot;: &quot;Need to find a good Python tutorial on the web&quot;,
+      &quot;uri&quot;: &quot;http://localhost:5000/todo/api/v1.0/tasks/2&quot;
+    }
+  ]
+}
+</pre></div>
+</div>
+<p>认证扩展给予我们很大的自由选择哪些函数需要保护，哪些函数需要公开。</p>
+<p>为了确保登录信息的安全应该使用 HTTP 安全服务器(例如: <a class="reference external" href="https://">https://</a>...)，这样客户端和服务器之间的通信都是加密的，以防止传输过程中第三方看到认证的凭据。</p>
+<p>让人不舒服的是当请求收到一个 401 的错误，网页浏览都会跳出一个丑陋的登录框，即使请求是在后台发生的。因此如果我们要实现一个完美的 web 服务器的话，我们就需要禁止跳转到浏览器显示身份验证对话框，让我们的客户端应用程序自己处理登录。</p>
+<p>一个简单的方式就是不返回 401 错误。403 错误是一个令人青睐的替代，403 错误表示 “禁止” 的错误:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@auth.error_handler</span>
+<span class="k">def</span> <span class="nf">unauthorized</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">make_response</span><span class="p">(</span><span class="n">jsonify</span><span class="p">({</span><span class="s">&#39;error&#39;</span><span class="p">:</span> <span class="s">&#39;Unauthorized access&#39;</span><span class="p">}),</span> <span class="mi">403</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id4">
+<h2>可能的改进<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<p>我们编写的小型的 web service 还可以在不少的方面进行改进。</p>
+<p>对于初学者来说，一个真正的 web service 需要一个真实的数据库进行支撑。我们现在使用的内存数据结构会有很多限制不应该被用于真正的应用。</p>
+<p>另外一个可以提高的领域就是处理多用户。如果系统支持多用户的话，不同的客户端可以发送不同的认证凭证获取相应用户的任务列表。在这样一个系统中的话，我们需要第二个资源就是用户。在用户资源上的 POST 的请求代表注册换一个新用户。一个 GET 请求表示客户端获取一个用户的信息。一个 PUT 请求表示更新用户信息，比如可能是更新邮箱地址。一个 DELETE 请求表示删除用户账号。</p>
+<p>GET 检索任务列表请求可以在几个方面进行扩展。首先可以携带一个可选的页的参数，以便客户端请求任务的一部分。另外，这种扩展更加有用：允许按照一定的标准筛选。比如，用户只想要看到完成的任务，或者只想看到任务的标题以 A 字母开头。所有的这些都可以作为 URL 的一个参数项。</p>
 </div>
 </div>
 
@@ -587,6 +564,9 @@ There are a number of ways in which this little web service we have built today 
 <li><a class="reference internal" href="#web-service">设计一个简单的 web service</a></li>
 <li><a class="reference internal" href="#flask">Flask 框架的简介</a></li>
 <li><a class="reference internal" href="#python-flask-restful-services">使用 Python 和 Flask 实现 RESTful services</a></li>
+<li><a class="reference internal" href="#id2">优化 web service 接口</a></li>
+<li><a class="reference internal" href="#id3">加强 RESTful web service 的安全性</a></li>
+<li><a class="reference internal" href="#id4">可能的改进</a></li>
 </ul>
 </li>
 </ul>

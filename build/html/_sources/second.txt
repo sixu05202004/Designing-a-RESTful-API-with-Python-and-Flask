@@ -4,125 +4,139 @@
 使用 Flask-RESTful 设计 RESTful API
 ==========================================
 
-This is the third article in which I explore different aspects of writing RESTful APIs using the Flask microframework.
+前面我已经用 Flask 实现了一个 RESTful 服务器。今天我们将会使用 Flask-RESTful 来实现同一个 RESTful 服务器，Flask-RESTful 是一个可以简化 APIs 的构建的 Flask 扩展。
 
-The example RESTful server I wrote before used only Flask as a dependency. Today I will show you how to write the same server using Flask-RESTful, a Flask extension that simplifies the creation of APIs.
 
-The RESTful server
-As a reminder, here is the definition of the ToDo List web service that has been serving as an example in my RESTful articles:
+RESTful 服务器
+-----------------
 
-HTTP Method	URI	Action
-GET	http://[hostname]/todo/api/v1.0/tasks	Retrieve list of tasks
-GET	http://[hostname]/todo/api/v1.0/tasks/[task_id]	Retrieve a task
-POST	http://[hostname]/todo/api/v1.0/tasks	Create a new task
-PUT	http://[hostname]/todo/api/v1.0/tasks/[task_id]	Update an existing task
-DELETE	http://[hostname]/todo/api/v1.0/tasks/[task_id]	Delete a task
-The only resource exposed by this service is a "task", which has the following data fields:
+作为一个提醒， 这里就是待完成事项列表 web service 所提供的方法的定义::
 
-uri: unique URI for the task. String type.
-title: short task description. String type.
-description: long task description. Text type.
-done: task completion state. Boolean type.
-Routing
-In my first RESTful server example (source code here) I have used regular Flask view functions to define all the routes.
+  ==========  ===============================================  =============================
+  HTTP 方法   URL                                              动作
+  ==========  ===============================================  ==============================
+  GET         http://[hostname]/todo/api/v1.0/tasks            检索任务列表
+  GET         http://[hostname]/todo/api/v1.0/tasks/[task_id]  检索某个任务
+  POST        http://[hostname]/todo/api/v1.0/tasks            创建新任务
+  PUT         http://[hostname]/todo/api/v1.0/tasks/[task_id]  更新任务
+  DELETE      http://[hostname]/todo/api/v1.0/tasks/[task_id]  删除任务
+  ==========  ================================================ =============================
 
-Flask-RESTful provides a Resource base class that can define the routing for one or more HTTP methods for a given URL. For example, to define a User resource with GET, PUT and DELETE methods you would write:
+这个服务唯一的资源叫做“任务”，它有如下一些属性:
 
-from flask import Flask
-from flask.ext.restful import Api, Resource
+* **id**: 任务的唯一标识符。数字类型。
+* **title**: 简短的任务描述。字符串类型。
+* **description**: 具体的任务描述。文本类型。
+* **done**: 任务完成的状态。布尔值。
 
-app = Flask(__name__)
-api = Api(app)
 
-class UserAPI(Resource):
-    def get(self, id):
-        pass
+路由
+-------
 
-    def put(self, id):
-        pass
+在上一遍文章中，我使用了 Flask 的视图函数来定义所有的路由。
 
-    def delete(self, id):
-        pass
+Flask-RESTful 提供了一个 Resource 基础类，它能够定义一个给定 URL 的一个或者多个 HTTP 方法。例如，定义一个可以使用 HTTP 的 GET, PUT 以及 DELETE 方法的 User 资源，你的代码可以如下::
 
-api.add_resource(UserAPI, '/users/<int:id>', endpoint = 'user')
-The add_resource function registers the routes with the framework using the given endpoint. If an endpoint isn't given then Flask-RESTful generates one for you from the class name, but since sometimes the endpoint is needed for functions such as url_for I prefer to make it explicit.
+    from flask import Flask
+    from flask.ext.restful import Api, Resource
 
-My ToDo API defines two URLs: /todo/api/v1.0/tasks for the list of tasks, and /todo/api/v1.0/tasks/<int:id> for an individual task. Since Flask-RESTful's Resource class can wrap a single URL this server will need two resources:
+    app = Flask(__name__)
+    api = Api(app)
 
-class TaskListAPI(Resource):
-    def get(self):
-        pass
+    class UserAPI(Resource):
+        def get(self, id):
+            pass
 
-    def post(self):
-        pass
+        def put(self, id):
+            pass
 
-class TaskAPI(Resource):
-    def get(self, id):
-        pass
+        def delete(self, id):
+            pass
 
-    def put(self, id):
-        pass
+    api.add_resource(UserAPI, '/users/<int:id>', endpoint = 'user')
 
-    def delete(self, id):
-        pass
+add_resource 函数使用指定的 endpoint 注册路由到框架上。如果没有指定 endpoint，Flask-RESTful 会根据类名生成一个，但是有时候有些函数比如 url_for 需要 endpoint，因此我会明确给 endpoint 赋值。
 
-api.add_resource(TaskListAPI, '/todo/api/v1.0/tasks', endpoint = 'tasks')
-api.add_resource(TaskAPI, '/todo/api/v1.0/tasks/<int:id>', endpoint = 'task')
-Note that while the method views of TaskListAPI receive no arguments the ones in TaskAPI all receive the id, as specified in the URL under which the resource is registered.
+我的待办事项 API 定义两个 URLs：/todo/api/v1.0/tasks（获取所有任务列表），以及 /todo/api/v1.0/tasks/<int:id>（获取单个任务）。我们现在需要两个资源::
 
-Request Parsing and Validation
-When I implemented this server in the previous article I did my own validation of the request data. For example, look at how long the PUT handler is in that version:
+    class TaskListAPI(Resource):
+        def get(self):
+            pass
 
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
-@auth.login_required
-def update_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    if not request.json:
-        abort(400)
-    if 'title' in request.json and type(request.json['title']) != unicode:
-        abort(400)
-    if 'description' in request.json and type(request.json['description']) is not unicode:
-        abort(400)
-    if 'done' in request.json and type(request.json['done']) is not bool:
-        abort(400)
-    task[0]['title'] = request.json.get('title', task[0]['title'])
-    task[0]['description'] = request.json.get('description', task[0]['description'])
-    task[0]['done'] = request.json.get('done', task[0]['done'])
-    return jsonify( { 'task': make_public_task(task[0]) } )
-Here I have to make sure the data given with the request is valid before using it, and that makes the function pretty long.
+        def post(self):
+            pass
 
-Flask-RESTful provides a much better way to handle this with the RequestParser class. This class works in a similar way as argparse for command line arguments.
+    class TaskAPI(Resource):
+        def get(self, id):
+            pass
 
-First, for each resource I define the arguments and how to validate them:
+        def put(self, id):
+            pass
 
-from flask.ext.restful import reqparse
+        def delete(self, id):
+            pass
 
-class TaskListAPI(Resource):
-    def __init__(self):
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('title', type = str, required = True,
-            help = 'No task title provided', location = 'json')
-        self.reqparse.add_argument('description', type = str, default = "", location = 'json')
-        super(TaskListAPI, self).__init__()
+    api.add_resource(TaskListAPI, '/todo/api/v1.0/tasks', endpoint = 'tasks')
+    api.add_resource(TaskAPI, '/todo/api/v1.0/tasks/<int:id>', endpoint = 'task')
 
-    # ...
 
-class TaskAPI(Resource):
-    def __init__(self):
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('title', type = str, location = 'json')
-        self.reqparse.add_argument('description', type = str, location = 'json')
-        self.reqparse.add_argument('done', type = bool, location = 'json')
-        super(TaskAPI, self).__init__()
+解析以及验证请求
+-----------------
 
-    # ...
-In the TaskListAPI resource the POST method is the only one the receives arguments. The title argument is required here, so I included an error message that Flask-RESTful will send as a response to the client when the field is missing. The description field is optional, and when it is missing a default value of an empty string will be used. One interesting aspect of the RequestParser class is that by default it looks for fields in request.values, so the location optional argument must be set to indicate that the fields are coming in request.json.
+当我在以前的文章中实现此服务器的时候，我自己对请求的数据进行验证。例如，在之前版本中如何处理 PUT 的::
 
-The request parser for the TaskAPI is constructed in a similar way, but has a few differences. In this case it is the PUT method that will need to parse arguments, and for this method all the arguments are optional, including the done field that was not part of the request in the other resource.
+    @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
+    @auth.login_required
+    def update_task(task_id):
+        task = filter(lambda t: t['id'] == task_id, tasks)
+        if len(task) == 0:
+            abort(404)
+        if not request.json:
+            abort(400)
+        if 'title' in request.json and type(request.json['title']) != unicode:
+            abort(400)
+        if 'description' in request.json and type(request.json['description']) is not unicode:
+            abort(400)
+        if 'done' in request.json and type(request.json['done']) is not bool:
+            abort(400)
+        task[0]['title'] = request.json.get('title', task[0]['title'])
+        task[0]['description'] = request.json.get('description', task[0]['description'])
+        task[0]['done'] = request.json.get('done', task[0]['done'])
+        return jsonify( { 'task': make_public_task(task[0]) } )
 
-Now that the request parsers are initialized, parsing and validating a request is pretty easy. For example, note how much simpler the TaskAPI.put() method becomes:
+在这里, 我必须确保请求中给出的数据在使用之前是有效，这样使得函数变得又臭又长。
+
+Flask-RESTful 提供了一个更好的方式来处理数据验证，它叫做 RequestParser 类。这个类工作方式类似命令行解析工具 argparse。
+
+首先，对于每一个资源需要定义参数以及怎样验证它们::
+
+    from flask.ext.restful import reqparse
+
+    class TaskListAPI(Resource):
+        def __init__(self):
+            self.reqparse = reqparse.RequestParser()
+            self.reqparse.add_argument('title', type = str, required = True,
+                help = 'No task title provided', location = 'json')
+            self.reqparse.add_argument('description', type = str, default = "", location = 'json')
+            super(TaskListAPI, self).__init__()
+
+        # ...
+
+    class TaskAPI(Resource):
+        def __init__(self):
+            self.reqparse = reqparse.RequestParser()
+            self.reqparse.add_argument('title', type = str, location = 'json')
+            self.reqparse.add_argument('description', type = str, location = 'json')
+            self.reqparse.add_argument('done', type = bool, location = 'json')
+            super(TaskAPI, self).__init__()
+
+        # ...
+
+在 TaskListAPI 资源中，POST 方法是唯一接收参数的。参数“标题”是必须的，因此我定义一个缺少“标题”的错误信息。当客户端缺少这个参数的时候，Flask-RESTful 将会把这个错误信息作为响应发送给客户端。“描述”字段是可选的，当缺少这个字段的时候，默认的空字符串将会被使用。一个有趣的方面就是 RequestParser 类默认情况下在 request.values 中查找参数，因此 location 可选参数必须被设置以表明请求过来的参数是 request.json 格式的。
+
+TaskAPI 资源的参数处理是同样的方式，但是有少许不同。PUT 方法需要解析参数，并且这个方法的所有参数都是可选的。
+
+当请求解析器被初始化，解析和验证一个请求是很容易的。 例如，请注意 TaskAPI.put() 方法变的多么地简单::
 
     def put(self, id):
         task = filter(lambda t: t['id'] == id, tasks)
@@ -134,52 +148,64 @@ Now that the request parsers are initialized, parsing and validating a request i
             if v != None:
                 task[k] = v
         return jsonify( { 'task': make_public_task(task) } )
-A side benefit of letting Flask-RESTful do the validation is that now there is no need to have a handler for the bad request code 400 error, this is all taken care of by the extension.
 
-Generating Responses
-My original REST server generates the responses using Flask's jsonify helper function. Flask-RESTful automatically handles the conversion to JSON, so instead of this:
+使用 Flask-RESTful 来处理验证的另一个好处就是没有必要单独地处理类似 HTTP 400 错误，Flask-RESTful 会来处理这些。
 
-        return jsonify( { 'task': make_public_task(task) } )
-I can do this:
 
-        return { 'task': make_public_task(task) }
-Flask-RESTful also supports passing a custom status code back when necessary:
+生成响应
+-----------
 
-        return { 'task': make_public_task(task) }, 201
-But there is more. The make_public_task wrapper from the original server converted a task from its internal representation to the external representation that clients expected. The conversion included removing the id field and adding a uri field in its place. Flask-RESTful provides a helper function to do this in a much more elegant way that not only generates the uri but also does type conversion on the remaining fields:
-
-from flask.ext.restful import fields, marshal
-
-task_fields = {
-    'title': fields.String,
-    'description': fields.String,
-    'done': fields.Boolean,
-    'uri': fields.Url('task')
-}
-
-class TaskAPI(Resource):
-    # ...
-
-    def put(self, id):
-        # ...
-        return { 'task': marshal(task, task_fields) }
-The task_fields structure serves as a template for the marshal function. The fields.Uri type is a special type that generates a URL. The argument it takes is the endpoint (recall that I have used explicit endpoints when I registered the resources specifically so that I can refer to them when needed).
-
-Authentication
-The routes in the REST server are all protected with HTTP basic authentication. In the original server the protection was added using the decorator provided by the Flask-HTTPAuth extension.
-
-Since the Resouce class inherits from Flask's MethodView, it is possible to attach decorators to the methods by defining a decorators class variable:
-
-from flask.ext.httpauth import HTTPBasicAuth
-# ...
-auth = HTTPBasicAuth()
-# ...
-
-class TaskAPI(Resource):
-    decorators = [auth.login_required]
-    # ...
-
-class TaskAPI(Resource):
-    decorators = [auth.login_required]
-    # ...
+原来设计的 REST 服务器使用 Flask 的 jsonify 函数来生成响应。Flask-RESTful 会自动地处理转换成 JSON 数据格式，因此下面的代码需要替换:: 
     
+    return jsonify( { 'task': make_public_task(task) } )
+
+现在需要写成这样::
+
+    return { 'task': make_public_task(task) }
+
+Flask-RESTful 也支持自定义状态码，如果有必要的话::
+
+    return { 'task': make_public_task(task) }, 201
+
+Flask-RESTful 还有更多的功能。make_public_task 能够把来自原始服务器上的任务从内部形式包装成客户端想要的外部形式。最典型的就是把任务的 id 转成 uri。Flask-RESTful 就提供一个辅助函数能够很优雅地做到这样的转换，不仅仅能够把 id 转成 uri 并且能够转换其他的参数::
+
+    from flask.ext.restful import fields, marshal
+
+    task_fields = {
+        'title': fields.String,
+        'description': fields.String,
+        'done': fields.Boolean,
+        'uri': fields.Url('task')
+    }
+
+    class TaskAPI(Resource):
+        # ...
+
+        def put(self, id):
+            # ...
+            return { 'task': marshal(task, task_fields) }
+
+task_fields 结构用于作为 marshal 函数的模板。fields.Uri 是一个用于生成一个 URL 的特定的参数。
+它需要的参数是 endpoint。
+
+
+认证
+------
+
+在 REST 服务器中的路由都是由 HTTP 基本身份验证保护着。在最初的那个服务器是通过使用 Flask-HTTPAuth 扩展来实现的。
+
+因为 Resouce 类是继承自 Flask 的 MethodView，它能够通过定义 decorators 变量并且把装饰器赋予给它::
+
+    from flask.ext.httpauth import HTTPBasicAuth
+    # ...
+    auth = HTTPBasicAuth()
+    # ...
+
+    class TaskAPI(Resource):
+        decorators = [auth.login_required]
+        # ...
+
+    class TaskAPI(Resource):
+        decorators = [auth.login_required]
+        # ...
+        

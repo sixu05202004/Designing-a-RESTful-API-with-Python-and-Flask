@@ -30,15 +30,15 @@ RESTful web services 概念的核心就是“资源”。 资源可以用 `URI <
 
 HTTP 标准的方法有如下::
 
-  ==========  ==============  ==================================
-  HTTP 方法   行为            示例
-  ==========  ==============  ==================================
-  GET         获取资源的信息  http://example.com/api/orders
-  GET         获取资源的信息  http://example.com/api/orders/123
-  POST        创建新资源      http://example.com/api/orders
-  PUT         更新资源        http://example.com/api/orders/123
-  DELETE      删除资源        http://example.com/api/orders/123
-  ==========  ==============  ==================================
+  ==========  =====================  ==================================
+  HTTP 方法   行为                   示例
+  ==========  =====================  ==================================
+  GET         获取资源的信息         http://example.com/api/orders
+  GET         获取某个特定资源的信息 http://example.com/api/orders/123
+  POST        创建新资源             http://example.com/api/orders
+  PUT         更新资源               http://example.com/api/orders/123
+  DELETE      删除资源               http://example.com/api/orders/123
+  ==========  ====================== ==================================
 
 REST 设计不需要特定的数据格式。在请求中数据可以以 `JSON <http://en.wikipedia.org/wiki/JSON>`_ 形式, 或者有时候作为 url 中查询参数项。
 
@@ -84,7 +84,7 @@ Flask 框架的简介
 
 在我们深入研究 web services 的细节之前，让我们回顾一下一个普通的 Flask Web 应用程序的结构。
 
-我会首先假设你知道 Python 在你的平台上工作的基本知识。 我讲讲解的例子是工作在一个类 Unix 操作系统。简而言之，这意味着它们能工作在 Linux，Mac OS X 和 Windows(如果你使用Cygwin)。
+我会首先假设你知道 Python 在你的平台上工作的基本知识。 我将讲解的例子是工作在一个类 Unix 操作系统。简而言之，这意味着它们能工作在 Linux，Mac OS X 和 Windows(如果你使用Cygwin)。
 如果你使用 Windows 上原生的 Python 版本的话，命令会有所不同。 
 
 让我们开始在一个虚拟环境上安装 Flask。如果你的系统上没有 virtualenv，你可以从 https://pypi.python.org/pypi/virtualenv 上下载::
@@ -246,14 +246,15 @@ Flask 框架的简介
   <p>The requested URL was not found on the server.</p><p>If you     entered the URL manually please check your spelling and try again.</p>
 
 
-当我们请求 id #2 的资源时候，我们获取到了，但是当我们请求 #3 的时候返回了 404 错误。有关错误奇怪的是返回的是 HTML 信息而不是 JSON，这是因为 Flask 按照默认方式生成 404 响应。由于这是一个 Web service 客户端希望我们总是 以 JSON 格式回应，所以我们需要改善我们的 404 错误处理程序::
+当我们请求 id #2 的资源时候，我们获取到了，但是当我们请求 #3 的时候返回了 404 错误。有关错误奇怪的是返回的是 HTML 信息而不是 JSON，这是因为 Flask 按照默认方式生成 404 响应。由于这是一个 Web service 客户端希望我们总是以 JSON 格式回应，所以我们需要改善我们的 404 错误处理程序::
 
   from flask import make_response
 
   @app.errorhandler(404)
   def not_found(error):
       return make_response(jsonify({'error': 'Not found'}), 404)
-  And we get a much more API friendly error response:
+
+我们会得到一个友好的错误提示::
 
   $ curl -i http://localhost:5000/todo/api/v1.0/tasks/3
   HTTP/1.0 404 NOT FOUND
@@ -371,171 +372,187 @@ Flask 框架的简介
       tasks.remove(task[0])
       return jsonify({'result': True})
 
-delete_task 函数没有什么特别的。对于 update_task 函数，我们需要严格地检查输入的参数以防止可能的问题。我们需要确保在我们把它更新到数据库之前，任何客户端提供我们的是预期的格式
-The delete_task function should have no surprises. For the update_task function we are trying to prevent bugs by doing exhaustive checking of the input arguments. We need to make sure that anything that the client provided us is in the expected format before we incorporate it into our database.
+delete_task 函数没有什么特别的。对于 update_task 函数，我们需要严格地检查输入的参数以防止可能的问题。我们需要确保在我们把它更新到数据库之前，任何客户端提供我们的是预期的格式。
 
-A function call that updates task #2 as being done would be done as follows:
+更新任务 #2 的函数调用如下所示::
 
-$ curl -i -H "Content-Type: application/json" -X PUT -d '{"done":true}' http://localhost:5000/todo/api/v1.0/tasks/2
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 170
-Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 07:10:16 GMT
+  $ curl -i -H "Content-Type: application/json" -X PUT -d '{"done":true}' http://localhost:5000/todo/api/v1.0/tasks/2
+  HTTP/1.0 200 OK
+  Content-Type: application/json
+  Content-Length: 170
+  Server: Werkzeug/0.8.3 Python/2.7.3
+  Date: Mon, 20 May 2013 07:10:16 GMT
 
-{
-  "task": [
-    {
-      "description": "Need to find a good Python tutorial on the web",
-      "done": true,
-      "id": 2,
-      "title": "Learn Python"
-    }
-  ]
-}
-Improving the web service interface
-The problem with the current design of the API is that clients are forced to construct URIs from the task identifiers that are returned. This is pretty easy in itself, but it indirectly forces clients to know how these URIs need to be built, and this will prevent us from making changes to URIs in the future.
+  {
+    "task": [
+      {
+        "description": "Need to find a good Python tutorial on the web",
+        "done": true,
+        "id": 2,
+        "title": "Learn Python"
+      }
+    ]
+  }
 
-Instead of returning task ids we can return the full URI that controls the task, so that clients get the URIs ready to be used. For this we can write a small helper function that generates a "public" version of a task to send to the client:
 
-from flask import url_for
+优化 web service 接口
+------------------------
 
-def make_public_task(task):
-    new_task = {}
-    for field in task:
-        if field == 'id':
-            new_task['uri'] = url_for('get_task', task_id=task['id'], _external=True)
-        else:
-            new_task[field] = task[field]
-    return new_task
-All we are doing here is taking a task from our database and creating a new task that has all the fields except id, which gets replaced with another field called uri, generated with Flask's url_for.
+目前 API 的设计的问题就是迫使客户端在任务标识返回后去构造 URIs。这对于服务器是十分简单的，但是间接地迫使客户端知道这些 URIs 是如何构造的，这将会阻碍我们以后变更这些 URIs。 
 
-When we return the list of tasks we pass them through this function before sending them to the client:
+不直接返回任务的 ids，我们直接返回控制这些任务的完整的 URI，以便客户端可以随时使用这些 URIs。为此，我们可以写一个小的辅助函数生成一个 “公共” 版本任务发送到客户端::
 
-@app.route('/todo/api/v1.0/tasks', methods=['GET'])
-def get_tasks():
-    return jsonify({'tasks': map(make_public_task, tasks)})
-So now this is what the client gets when it retrieves the list of tasks:
+  from flask import url_for
 
-$ curl -i http://localhost:5000/todo/api/v1.0/tasks
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 406
-Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 18:16:28 GMT
+  def make_public_task(task):
+      new_task = {}
+      for field in task:
+          if field == 'id':
+              new_task['uri'] = url_for('get_task', task_id=task['id'], _external=True)
+          else:
+              new_task[field] = task[field]
+      return new_task
 
-{
-  "tasks": [
-    {
-      "title": "Buy groceries",
-      "done": false,
-      "description": "Milk, Cheese, Pizza, Fruit, Tylenol",
-      "uri": "http://localhost:5000/todo/api/v1.0/tasks/1"
-    },
-    {
-      "title": "Learn Python",
-      "done": false,
-      "description": "Need to find a good Python tutorial on the web",
-      "uri": "http://localhost:5000/todo/api/v1.0/tasks/2"
-    }
-  ]
-}
-We apply this technique to all the other functions and with this we ensure that the client always sees URIs instead of ids.
+这里所有做的事情就是从我们数据库中取出任务并且创建一个新的任务，这个任务的 id 字段被替换成通过 Flask 的  url_for 生成的 uri 字段。
 
-Securing a RESTful web service
-Can you believe we are done? Well, we are done with the functionality of our service, but we still have a problem. Our service is open to anybody, and that is a bad thing.
+当我们返回所有的任务列表的时候，在发送到客户端之前通过这个函数进行处理::
 
-We have a complete web service that can manage our to do list, but the service in its current state is open to any clients. If a stranger figures out how our API works he or she can write a new client that can access our service and mess with our data.
+  @app.route('/todo/api/v1.0/tasks', methods=['GET'])
+  def get_tasks():
+      return jsonify({'tasks': map(make_public_task, tasks)})
 
-Most entry level tutorials ignore security and stop here. In my opinion this is a serious problem that should always be addressed.
+这里就是客户端获取任务列表的时候得到的数据::
 
-The easiest way to secure our web service is to require clients to provide a username and a password. In a regular web application you would have a login form that posts the credentials, and at that point the server would create a session for the logged in user to continue working, with the session id stored in a cookie in the client browser. Unfortunately doing that here would violate the stateless requirement of REST, so instead we have to ask clients to send their authentication information with every request they send to us.
+  $ curl -i http://localhost:5000/todo/api/v1.0/tasks
+  HTTP/1.0 200 OK
+  Content-Type: application/json
+  Content-Length: 406
+  Server: Werkzeug/0.8.3 Python/2.7.3
+  Date: Mon, 20 May 2013 18:16:28 GMT
 
-With REST we always try to adhere to the HTTP protocol as much as we can. Now that we need to implement authentication we should do so in the context of HTTP, which provides two forms of authentication called Basic and Digest.
+  {
+    "tasks": [
+      {
+        "title": "Buy groceries",
+        "done": false,
+        "description": "Milk, Cheese, Pizza, Fruit, Tylenol",
+        "uri": "http://localhost:5000/todo/api/v1.0/tasks/1"
+      },
+      {
+        "title": "Learn Python",
+        "done": false,
+        "description": "Need to find a good Python tutorial on the web",
+        "uri": "http://localhost:5000/todo/api/v1.0/tasks/2"
+      }
+    ]
+  }
 
-There is a small Flask extension that can help with this, written by no other than yours truly. So let's go ahead and install Flask-HTTPAuth:
+我们将会把上述的方式应用到其它所有的函数上以确保客户端一直看到 URIs 而不是 ids。
 
-$ flask/bin/pip install flask-httpauth
-Let's say we want our web service to only be accessible to username miguel and password python. We can setup a Basic HTTP authentication as follows:
 
-from flask.ext.httpauth import HTTPBasicAuth
-auth = HTTPBasicAuth()
+加强 RESTful web service 的安全性
+--------------------------------------
 
-@auth.get_password
-def get_password(username):
-    if username == 'miguel':
-        return 'python'
-    return None
+我们已经完成了我们 web service 的大部分功能，但是仍然有一个问题。我们的 web service 对任何人都是公开的，这并不是一个好主意。
 
-@auth.error_handler
-def unauthorized():
-    return make_response(jsonify({'error': 'Unauthorized access'}), 401)
-The get_password function is a callback function that the extension will use to obtain the password for a given user. In a more complex system this function could check a user database, but in this case we just have a single user so there is no need for that.
+我们有一个可以管理我们的待办事项完整的 web service，但在当前状态下的 web service 是开放给所有的客户端。 如果一个陌生人弄清我们的 API 是如何工作的，他或她可以编写一个客户端访问我们的 web service 并且毁坏我们的数据。
 
-The error_handler callback will be used by the extension when it needs to send the unauthorized error code back to the client. Like we did with other error codes, here we customize the response so that is contains JSON instead of HTML.
+大部分初级的教程会忽略这个问题并且到此为止。在我看来这是一个很严重的问题，我必须指出。
 
-With the authentication system setup, all that is left is to indicate which functions need to be protected, by adding the @auth.login_required decorator. For example:
+确保我们的 web service 安全服务的最简单的方法是要求客户端提供一个用户名和密码。在常规的 web 应用程序会提供一个登录的表单用来认证，并且服务器会创建一个会话为登录的用户以后的操作使用，会话的 id 以 cookie 形式存储在客户端浏览器中。然而 REST 的规则之一就是 “无状态”， 因此我们必须要求客户端在每一次请求中提供认证的信息。
 
-@app.route('/todo/api/v1.0/tasks', methods=['GET'])
-@auth.login_required
-def get_tasks():
-    return jsonify({'tasks': tasks})
-If we now try to invoke this function with curl this is what we get:
+我们一直试着尽可能地坚持 HTTP 标准协议。既然我们需要实现认证我们需要在 HTTP 上下文中去完成，HTTP 协议提供了两种认证机制: `Basic 和 Digest <http://www.ietf.org/rfc/rfc2617.txt>`_。
 
-$ curl -i http://localhost:5000/todo/api/v1.0/tasks
-HTTP/1.0 401 UNAUTHORIZED
-Content-Type: application/json
-Content-Length: 36
-WWW-Authenticate: Basic realm="Authentication Required"
-Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 06:41:14 GMT
+有一个小的 Flask 扩展能够帮助我们，我们可以先安装 Flask-HTTPAuth::
 
-{
-  "error": "Unauthorized access"
-}
-To be able to invoke this function we have to send our credentials:
+  $ flask/bin/pip install flask-httpauth
 
-$ curl -u miguel:python -i http://localhost:5000/todo/api/v1.0/tasks
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 316
-Server: Werkzeug/0.8.3 Python/2.7.3
-Date: Mon, 20 May 2013 06:46:45 GMT
+比方说，我们希望我们的 web service 只让访问用户名 miguel 和密码 python 的客户端访问。 我们可以设置一个基本的 HTTP 验证如下::
 
-{
-  "tasks": [
-    {
-      "title": "Buy groceries",
-      "done": false,
-      "description": "Milk, Cheese, Pizza, Fruit, Tylenol",
-      "uri": "http://localhost:5000/todo/api/v1.0/tasks/1"
-    },
-    {
-      "title": "Learn Python",
-      "done": false,
-      "description": "Need to find a good Python tutorial on the web",
-      "uri": "http://localhost:5000/todo/api/v1.0/tasks/2"
-    }
-  ]
-}
-The authentication extension gives us the freedom to choose which functions in the service are open and which are protected.
+  from flask.ext.httpauth import HTTPBasicAuth
+  auth = HTTPBasicAuth()
 
-To ensure the login information is secure the web service should be exposed in a HTTP Secure server (i.e. https://...) as this encrypts all the communications between client and server and prevents a third party from seeing the authentication credentials in transit.
+  @auth.get_password
+  def get_password(username):
+      if username == 'miguel':
+          return 'python'
+      return None
 
-Unfortunately web browsers have the nasty habit of showing an ugly login dialog box when a request comes back with a 401 error code. This happens even for background requests, so if we were to implement a web browser client with our current web server we would need to jump through hoops to prevent browsers from showing their authentication dialogs and let our client application handle the login.
+  @auth.error_handler
+  def unauthorized():
+      return make_response(jsonify({'error': 'Unauthorized access'}), 401)
 
-A simple trick to distract web browsers is to return an error code other than 401. An alternative error code favored by many is 403, which is the "Forbidden" error. While this is a close enough error, it sort of violates the HTTP standard, so it is not the proper thing to do if full compliance is necessary. In particular this would be a bad idea if the client application is not a web browser. But for cases where server and client are developed together it saves a lot of trouble. The simple change that we can make to implement this trick is to replace the 401 with a 403:
+get_password 函数是一个回调函数，Flask-HTTPAuth 使用它来获取给定用户的密码。在一个更复杂的系统中，这个函数是需要检查一个用户数据库，但是在我们的例子中只有单一的用户因此没有必要。
 
-@auth.error_handler
-def unauthorized():
-    return make_response(jsonify({'error': 'Unauthorized access'}), 403)
-Of course if we do this we will need the client application to look for 403 errors as well.
+error_handler 回调函数是用于给客户端发送未授权错误代码。像我们处理其它的错误代码，这里我们定制一个包含 JSON 数据格式而不是 HTML 的响应。
 
-Possible improvements
-There are a number of ways in which this little web service we have built today can be improved.
+随着认证系统的建立，所剩下的就是把需要认证的函数添加 @auth.login_required 装饰器。例如::
 
-For starters, a real web service should be backed by a real database. The memory data structure that we are using is very limited in functionality and should not be used for a real application.
+  @app.route('/todo/api/v1.0/tasks', methods=['GET'])
+  @auth.login_required
+  def get_tasks():
+      return jsonify({'tasks': tasks})
 
-Another area in which an improvement could be made is in handling multiple users. If the system supports multiple users the authentication credentials sent by the client could be used to obtain user specific to do lists. In such a system we would have a second resource, which would be the users. A POST request on the users resource would represent a new user registering for the service. A GET request would return user information back to the client. A PUT request would update the user information, maybe updating an email address. A DELETE request would delete the user account.
+如果现在要尝试使用 curl 调用这个函数我们会得到::
 
-The GET request that retrieves the task list could be expanded in a couple of ways. First, this request could take optional pagination arguments, so that a client can request a portion of the list. Another way to make this function more useful would be to allow filtering by certain criteria. For example, a client might want to see only completed tasks, or only tasks with a title that begins with the letter A. All these elements can be added to the URL as arguments.
+  $ curl -i http://localhost:5000/todo/api/v1.0/tasks
+  HTTP/1.0 401 UNAUTHORIZED
+  Content-Type: application/json
+  Content-Length: 36
+  WWW-Authenticate: Basic realm="Authentication Required"
+  Server: Werkzeug/0.8.3 Python/2.7.3
+  Date: Mon, 20 May 2013 06:41:14 GMT
+
+  {
+    "error": "Unauthorized access"
+  }
+
+为了能够调用这个函数我们必须发送我们的认证凭据::
+
+  $ curl -u miguel:python -i http://localhost:5000/todo/api/v1.0/tasks
+  HTTP/1.0 200 OK
+  Content-Type: application/json
+  Content-Length: 316
+  Server: Werkzeug/0.8.3 Python/2.7.3
+  Date: Mon, 20 May 2013 06:46:45 GMT
+
+  {
+    "tasks": [
+      {
+        "title": "Buy groceries",
+        "done": false,
+        "description": "Milk, Cheese, Pizza, Fruit, Tylenol",
+        "uri": "http://localhost:5000/todo/api/v1.0/tasks/1"
+      },
+      {
+        "title": "Learn Python",
+        "done": false,
+        "description": "Need to find a good Python tutorial on the web",
+        "uri": "http://localhost:5000/todo/api/v1.0/tasks/2"
+      }
+    ]
+  }
+
+认证扩展给予我们很大的自由选择哪些函数需要保护，哪些函数需要公开。
+
+为了确保登录信息的安全应该使用 HTTP 安全服务器(例如: https://...)，这样客户端和服务器之间的通信都是加密的，以防止传输过程中第三方看到认证的凭据。
+
+让人不舒服的是当请求收到一个 401 的错误，网页浏览都会跳出一个丑陋的登录框，即使请求是在后台发生的。因此如果我们要实现一个完美的 web 服务器的话，我们就需要禁止跳转到浏览器显示身份验证对话框，让我们的客户端应用程序自己处理登录。
+
+一个简单的方式就是不返回 401 错误。403 错误是一个令人青睐的替代，403 错误表示 “禁止” 的错误::
+
+  @auth.error_handler
+  def unauthorized():
+      return make_response(jsonify({'error': 'Unauthorized access'}), 403)
+
+
+可能的改进
+-------------------------------
+
+我们编写的小型的 web service 还可以在不少的方面进行改进。
+
+对于初学者来说，一个真正的 web service 需要一个真实的数据库进行支撑。我们现在使用的内存数据结构会有很多限制不应该被用于真正的应用。
+
+另外一个可以提高的领域就是处理多用户。如果系统支持多用户的话，不同的客户端可以发送不同的认证凭证获取相应用户的任务列表。在这样一个系统中的话，我们需要第二个资源就是用户。在用户资源上的 POST 的请求代表注册换一个新用户。一个 GET 请求表示客户端获取一个用户的信息。一个 PUT 请求表示更新用户信息，比如可能是更新邮箱地址。一个 DELETE 请求表示删除用户账号。
+
+GET 检索任务列表请求可以在几个方面进行扩展。首先可以携带一个可选的页的参数，以便客户端请求任务的一部分。另外，这种扩展更加有用：允许按照一定的标准筛选。比如，用户只想要看到完成的任务，或者只想看到任务的标题以 A 字母开头。所有的这些都可以作为 URL 的一个参数项。
