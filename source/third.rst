@@ -4,151 +4,174 @@
 使用 Flask 设计 RESTful 的认证
 ======================================
 
-This article is the fourth in my series on RESTful APIs. Today I will be showing you a simple, yet secure way to protect a Flask based API with password or token based authentication.
+今天我将要展示一个简单，不过很安全的方式用来保护使用 Flask 编写的 API，它是使用密码或者令牌认证的。
 
-This article stands on its own, but if you feel you need to catch up here are the links to the previous articles:
 
-Designing a RESTful API with Python and Flask
-Writing a Javascript REST client
-Designing a RESTful API using Flask-RESTful
-Example Code
-The code discussed in the following sections is available for you to try and hack. You can find it on github: REST-auth.
+示例代码
+----------
 
-The User Database
-To give this example some resemblance to a real life project I'm going to use a Flask-SQLAlchemy database to store users.
+本文使用的代码能够在 github 上找到: `REST-auth <https://github.com/miguelgrinberg/REST-auth>`_ 。
 
-The user model will be very simple. For each user a username and a password_hash will be stored.
 
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key = True)
-    username = db.Column(db.String(32), index = True)
-    password_hash = db.Column(db.String(128))
-For security reasons the original password will not be stored, after the hash is calculated during registration it will be discarded. If this user database were to fall in malicious hands it would be extremely hard for the attacker to decode the real passwords from the hashes.
+用户数据库
+----------
 
-Passwords should never be stored in the clear in a user database.
+为了让给出的示例看起来想真实的项目，这里我将使用 Flask-SQLAlchemy 来构建用户数据库模型并且存储到数据库中。
 
-Password Hashing
-To create the password hashes I'm going to use PassLib, a package dedicated to password hashing.
+用户的数据库模型是十分简单的。对于每一个用户，username 和 password_hash 将会被存储::
 
-PassLib provides several hashing algorithms to choose from. The custom_app_context object is an easy to use option based on the sha256_crypt hashing algorithm.
+    class User(db.Model):
+        __tablename__ = 'users'
+        id = db.Column(db.Integer, primary_key = True)
+        username = db.Column(db.String(32), index = True)
+        password_hash = db.Column(db.String(128))
 
-To add password hashing and verification two new methods are added to the User model:
+出于安全原因，用户的原始密码将不被存储，密码在注册时被散列后存储到数据库中。使用散列密码的话，如果用户数据库不小心落入恶意攻击者的手里，他们也很难从散列中解析到真实的密码。
+
+密码 **决不能** 很明确地存储在用户数据库中。
+
+
+密码散列
+----------
+
+为了创建密码散列，我将会使用 PassLib 库，一个专门用于密码散列的 Python 包。
+
+PassLib 提供了多种散列算法供选择。custom_app_context 是一个易于使用的基于 sha256_crypt 的散列算法。
+
+User 用户模型需要增加两个新方法来增加密码散列和密码验证功能::
 
 from passlib.apps import custom_app_context as pwd_context
 
-class User(db.Model):
-    # ...
+    class User(db.Model):
+        # ...
 
-    def hash_password(self, password):
-        self.password_hash = pwd_context.encrypt(password)
+        def hash_password(self, password):
+            self.password_hash = pwd_context.encrypt(password)
 
-    def verify_password(self, password):
-        return pwd_context.verify(password, self.password_hash)
-The hash_password() method takes a plain password as argument and stores a hash of it with the user. This method is called when a new user is registering with the server, or when the user changes the password.
+        def verify_password(self, password):
+            return pwd_context.verify(password, self.password_hash)
 
-The verify_password() method takes a plain password as argument and returns True if the password is correct or False if not. This method is called whenever the user provides credentials and they need to be validated.
+hash_password() 函数接受一个明文的密码作为参数并且存储明文密码的散列。当一个新用户注册到服务器或者当用户修改密码的时候，这个函数将被调用。
 
-You may ask how can the password be verified if the original password was thrown away and lost forever after it was hashed.
+verify_password() 函数接受一个明文的密码作为参数并且当密码正确的话返回 True 或者密码错误的话返回 False。这个函数当用户提供和需要验证凭证的时候调用。
 
-Hashing algorithms are one-way functions, meaning that they can be used to generate a hash from a password, but they cannot be used in the reverse direction. But these algorithms are deterministic, given the same inputs they will always generate the same output. All PassLib needs to do to verify a password is to hash it with the same function that was used during registration, and then compare the resulting hash against the one stored in the database.
+你可能会问如果原始密码散列后如何验证原始密码的？
 
-User Registration
-In this example, a client can register a new user with a POST request to /api/users. The body of the request needs to be a JSON object that has username and password fields.
+散列算法是单向函数，这就是意味着它们能够用于根据密码生成散列，但是无法根据生成的散列逆向猜测出原密码。然而这些算法是具有确定性的，给定相同的输入它们总会得到相同的输出。PassLib 所有需要做的就是验证密码，通过使用注册时候同一个函数散列密码并且同存储坐骑数据库中的散列值进行比较。
 
-The implementation of the Flask route is shown below:
 
-@app.route('/api/users', methods = ['POST'])
-def new_user():
-    username = request.json.get('username')
-    password = request.json.get('password')
-    if username is None or password is None:
-        abort(400) # missing arguments
-    if User.query.filter_by(username = username).first() is not None:
-        abort(400) # existing user
-    user = User(username = username)
-    user.hash_password(password)
-    db.session.add(user)
-    db.session.commit()
-    return jsonify({ 'username': user.username }), 201, {'Location': url_for('get_user', id = user.id, _external = True)}
-This function is extremely simple. The username and password arguments are obtained from the JSON input coming with the request and then validated.
 
-If the arguments are valid then a new User instance is created. The username is assigned to it, and the password is hashed using the hash_password() method. The user is finally written to the database.
+用户注册
+----------
 
-The body of the response shows the user representation as a JSON object, with a status code of 201 and a Location header pointing to the URI of the newly created user.
+在本文例子中，一个客户端可以使用 POST 请求到 /api/users 上注册一个新用户。请求的主体必须是一个包含 username 和 password 的 JSON 格式的对象。
 
-Note: the implementation of the get_user endpoint is now shown here, you can find it in the full example on github.
+Flask 中的路由的实现如下所示::
 
-Here is an example user registration request sent from curl:
+    @app.route('/api/users', methods = ['POST'])
+    def new_user():
+        username = request.json.get('username')
+        password = request.json.get('password')
+        if username is None or password is None:
+            abort(400) # missing arguments
+        if User.query.filter_by(username = username).first() is not None:
+            abort(400) # existing user
+        user = User(username = username)
+        user.hash_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({ 'username': user.username }), 201, {'Location': url_for('get_user', id = user.id, _external = True)}
 
-$ curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:5000/api/users
-HTTP/1.0 201 CREATED
-Content-Type: application/json
-Content-Length: 27
-Location: http://127.0.0.1:5000/api/users/1
-Server: Werkzeug/0.9.4 Python/2.7.3
-Date: Thu, 28 Nov 2013 19:56:39 GMT
+这个函数是十分简单地。参数 username 和 password 是从请求中携带的 JSON 数据中获取，接着验证它们。
 
-{
-  "username": "miguel"
-}
-Note that in a real application this would be done over secure HTTP. There is no point in going through the effort of protecting the API if the login credentials are going to travel through the network in clear text.
+如果参数通过验证的话，新的 User 实例被创建。username 赋予给 User，接着使用 hash_password 方法散列密码。用户最终被写入数据库中。
 
-Password Based Authentication
-Now let's assume there is a resource exposed by this API that needs to be available only to registered users. This resource is accessed at the /api/resource endpoint.
+响应的主体是一个表示用户的 JSON 对象，201 状态码以及一个指向新创建的用户的 URI 的 HTTP 头信息：Location。
 
-To protect this resource I'm going to use HTTP Basic Authentication, but instead of implementing this protocol by hand I'm going to let the Flask-HTTPAuth extension do it for me.
+注意：get_user 函数可以在 github 上找到完整的代码。
 
-Using Flask-HTTPAuth an endpoint is protected by adding the login_required decorator to it:
+这里是一个用户注册的请求，发送自 curl::
 
-from flask.ext.httpauth import HTTPBasicAuth
-auth = HTTPBasicAuth()
+    $ curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:5000/api/users
+    HTTP/1.0 201 CREATED
+    Content-Type: application/json
+    Content-Length: 27
+    Location: http://127.0.0.1:5000/api/users/1
+    Server: Werkzeug/0.9.4 Python/2.7.3
+    Date: Thu, 28 Nov 2013 19:56:39 GMT
 
-@app.route('/api/resource')
-@auth.login_required
-def get_resource():
-    return jsonify({ 'data': 'Hello, %s!' % g.user.username })
-But of course Flask-HTTPAuth needs to be given some more information to know how to validate user credentials, and for this there are several options depending on the level of security implemented by the application.
+    {
+      "username": "miguel"
+    }
 
-The option that gives the maximum flexibility (and the only that can accomodate PassLib hashes) is implemented through the verify_password callback, which is given the username and password and is supposed to return True if the combination is valid or False if not. Flask-HTTPAuth invokes this callback function whenever it needs to validate a username and password pair.
+需要注意地是在真实的应用中这里可能会使用安全的的 HTTP (譬如：HTTPS)。如果用户登录的凭证是通过明文在网络传输的话，任何对 API 的保护措施是毫无意义的。
 
-An implementation of the verify_password callback for the example API is shown below:
 
-@auth.verify_password
-def verify_password(username, password):
-    user = User.query.filter_by(username = username).first()
-    if not user or not user.verify_password(password):
-        return False
-    g.user = user
-    return True
-This function finds the user by the username, then verifies the password using the verify_password() method. If the credentials are valid then the user is stored in Flask's g object so that the view function can use it.
+基于密码的认证
+--------------
 
-Here is an example curl request that gets the protected resource for the user registered above:
+现在我们假设存在一个资源通过一个 API 暴露给那些必须注册的用户。这个资源是通过 URL: /api/resource 能够访问到。
 
-$ curl -u miguel:python -i -X GET http://127.0.0.1:5000/api/resource
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 30
-Server: Werkzeug/0.9.4 Python/2.7.3
-Date: Thu, 28 Nov 2013 20:02:25 GMT
+为了保护这个资源，我们将使用 HTTP 基本身份认证，但是不是自己编写完整的代码来实现它，而是让 Flask-HTTPAuth 扩展来为我们做。
 
-{
-  "data": "Hello, miguel!"
-}
-If an incorrect login is used, then this is what happens:
+使用 Flask-HTTPAuth，通过添加 login_required 装饰器可以要求相应的路由必须进行认证::
 
-$ curl -u miguel:ruby -i -X GET http://127.0.0.1:5000/api/resource
-HTTP/1.0 401 UNAUTHORIZED
-Content-Type: text/html; charset=utf-8
-Content-Length: 19
-WWW-Authenticate: Basic realm="Authentication Required"
-Server: Werkzeug/0.9.4 Python/2.7.3
-Date: Thu, 28 Nov 2013 20:03:18 GMT
+    from flask.ext.httpauth import HTTPBasicAuth
+    auth = HTTPBasicAuth()
 
-Unauthorized Access
-Once again I feel the need to reiterate that in a real application the API should be available on secure HTTP only.
+    @app.route('/api/resource')
+    @auth.login_required
+    def get_resource():
+        return jsonify({ 'data': 'Hello, %s!' % g.user.username })
 
-Token Based Authentication
+但是，Flask-HTTPAuth 需要给予更多的信息来验证用户的认证，当然 Flask-HTTPAuth 有着许多的选项，它取决于应用程序实现的安全级别。
+
+能够提供最大自由度的选择(可能这也是唯一兼容 PassLib 散列)就是选用 verify_password 回调函数，这个回调函数将会根据提供的 username 和 password 的组合的，返回 True(通过验证) 或者 Flase(未通过验证)。Flask-HTTPAuth 将会在需要验证 username 和 password 对的时候调用这个回调函数。
+
+verify_password 回调函数的实现如下::
+
+    @auth.verify_password
+    def verify_password(username, password):
+        user = User.query.filter_by(username = username).first()
+        if not user or not user.verify_password(password):
+            return False
+        g.user = user
+        return True
+
+这个函数将会根据 username 找到用户，并且使用 verify_password() 方法验证密码。如果认证通过的话，用户对象将会被存储在 Flask 的 g 对象中，这样视图就能使用它。
+
+这里是用 curl 请求只允许注册用户获取的保护资源::
+
+    $ curl -u miguel:python -i -X GET http://127.0.0.1:5000/api/resource
+    HTTP/1.0 200 OK
+    Content-Type: application/json
+    Content-Length: 30
+    Server: Werkzeug/0.9.4 Python/2.7.3
+    Date: Thu, 28 Nov 2013 20:02:25 GMT
+
+    {
+      "data": "Hello, miguel!"
+    }
+
+如果登录失败的话，会得到下面的内容::
+
+    $ curl -u miguel:ruby -i -X GET http://127.0.0.1:5000/api/resource
+    HTTP/1.0 401 UNAUTHORIZED
+    Content-Type: text/html; charset=utf-8
+    Content-Length: 19
+    WWW-Authenticate: Basic realm="Authentication Required"
+    Server: Werkzeug/0.9.4 Python/2.7.3
+    Date: Thu, 28 Nov 2013 20:03:18 GMT
+
+    Unauthorized Access
+
+这里我再次重申在实际的应用中，请使用安全的 HTTP。
+
+
+基于令牌的认证
+--------------
+
+
 Having to send the username and the password with every request is inconvenient and can be seen as a security risk even if the transport is secure HTTP, since the client application must have those credentials stored without encryption to be able to send them with the requests.
 
 An improvement over the previous solution is to use a token to authenticate requests.
@@ -243,7 +266,10 @@ Date: Thu, 28 Nov 2013 20:05:08 GMT
 }
 Note that in this last request the password is written as the word unused. The password in this request can be anything, since it isn't used.
 
-OAuth Authentication
+
+OAuth 认证
+--------------
+
 When talking about RESTful authentication the OAuth protocol is usually mentioned.
 
 So what is OAuth?
@@ -260,7 +286,8 @@ OAuth can do this as well, and then it becomes a more elaborated version of the 
 
 If you decide to support OAuth there are a few implementations available for Python listed in the OAuth website.
 
-Conclusion
+讨论
+--------------
 I hope this article helped you understand how to implement user authentication for your API.
 
 Once again, you can download and play with a fully working implementation of the server described above. You can find the software on my github site: REST-auth.
