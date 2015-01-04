@@ -16,7 +16,7 @@
 用户数据库
 ----------
 
-为了让给出的示例看起来想真实的项目，这里我将使用 Flask-SQLAlchemy 来构建用户数据库模型并且存储到数据库中。
+为了让给出的示例看起来像真实的项目，这里我将使用 Flask-SQLAlchemy 来构建用户数据库模型并且存储到数据库中。
 
 用户的数据库模型是十分简单的。对于每一个用户，username 和 password_hash 将会被存储::
 
@@ -40,16 +40,16 @@ PassLib 提供了多种散列算法供选择。custom_app_context 是一个易�
 
 User 用户模型需要增加两个新方法来增加密码散列和密码验证功能::
 
-from passlib.apps import custom_app_context as pwd_context
+    from passlib.apps import custom_app_context as pwd_context
 
-    class User(db.Model):
-        # ...
+        class User(db.Model):
+            # ...
 
-        def hash_password(self, password):
-            self.password_hash = pwd_context.encrypt(password)
+            def hash_password(self, password):
+                self.password_hash = pwd_context.encrypt(password)
 
-        def verify_password(self, password):
-            return pwd_context.verify(password, self.password_hash)
+            def verify_password(self, password):
+                return pwd_context.verify(password, self.password_hash)
 
 hash_password() 函数接受一个明文的密码作为参数并且存储明文密码的散列。当一个新用户注册到服务器或者当用户修改密码的时候，这个函数将被调用。
 
@@ -57,7 +57,7 @@ verify_password() 函数接受一个明文的密码作为参数并且当密码�
 
 你可能会问如果原始密码散列后如何验证原始密码的？
 
-散列算法是单向函数，这就是意味着它们能够用于根据密码生成散列，但是无法根据生成的散列逆向猜测出原密码。然而这些算法是具有确定性的，给定相同的输入它们总会得到相同的输出。PassLib 所有需要做的就是验证密码，通过使用注册时候同一个函数散列密码并且同存储坐骑数据库中的散列值进行比较。
+散列算法是单向函数，这就是意味着它们能够用于根据密码生成散列，但是无法根据生成的散列逆向猜测出原密码。然而这些算法是具有确定性的，给定相同的输入它们总会得到相同的输出。PassLib 所有需要做的就是验证密码，通过使用注册时候同一个函数散列密码并且同存储在数据库中的散列值进行比较。
 
 
 
