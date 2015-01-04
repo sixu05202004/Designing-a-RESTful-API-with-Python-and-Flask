@@ -171,73 +171,76 @@ verify_password 回调函数的实现如下::
 基于令牌的认证
 --------------
 
+每次请求必须发送 username 和 password 是十分不方便，即使是通过安全的 HTTP 传输的话还是存在风险，因为客户端必须要存储不加密的认证凭证，这样才能在每次请求中发送。 
 
-Having to send the username and the password with every request is inconvenient and can be seen as a security risk even if the transport is secure HTTP, since the client application must have those credentials stored without encryption to be able to send them with the requests.
+一种基于之前解决方案的优化就是使用令牌来验证请求。
 
-An improvement over the previous solution is to use a token to authenticate requests.
+我们的想法是客户端应用程序使用认证凭证交换了认证令牌，接下来的请求只发送认证令牌。
 
-The idea is that the client application exchanges authentication credentials for an authentication token, and in subsequent requests just sends this token.
+令牌是具有有效时间，过了有效时间后，令牌变成无效，需要重新获取新的令牌。令牌的潜在风险在于生成令牌的算法比较弱，但是有效期较短可以减少风险。
 
-Tokens are usually given out with an expiration time, after which they become invalid and a new token needs to be obtained. The potential damage that can be caused if a token is leaked is much smaller due to their short life span.
+有很多的方法可以加强令牌。一个简单的强化方式就是根据存储在数据库中的用户以及密码生成一个随机的特定长度的字符串，可能过期日期也在里面。令牌就变成了明文密码的重排，这样就能很容易地进行字符串对比，还能对过期日期进行检查。
 
-There are many ways to implement tokens. A straightforward implementation is to generate a random sequence of characters of certain length that is stored with the user and the password in the database, possibly with an expiration date as well. The token then becomes sort of a plain text password, in that can be easily verified with a string comparison, plus a check of its expiration date.
+更加完善的实现就是不需要服务器端进行任何存储操作，使用加密的签名作为令牌。这种方式有很多的优点，能够根据用户信息生成相关的签名，并且很难被篡改。
 
-A more elaborated implementation that requires no server side storage is to use a cryptographically signed message as a token. This has the advantage that the information related to the token, namely the user for which the token was generated, is encoded in the token itself and protected against tampering with a strong cryptographic signature.
+Flask 使用类似的方式处理 cookies 的。这个实现依赖于一个叫做 itsdangerous 的库，我们这里也会采用它。
 
-Flask uses a similar approach to write secure cookies. This implementation is based on a package called itsdangerous, which I will also use here.
+令牌的生成以及验证将会被添加到 User 模型中，其具体实现如下::
 
-The token generation and verification can be implemented as additional methods in the User model:
+    from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+    class User(db.Model):
+        # ...
 
-class User(db.Model):
-    # ...
+        def generate_auth_token(self, expiration = 600):
+            s = Serializer(app.config['SECRET_KEY'], expires_in = expiration)
+            return s.dumps({ 'id': self.id })
 
-    def generate_auth_token(self, expiration = 600):
-        s = Serializer(app.config['SECRET_KEY'], expires_in = expiration)
-        return s.dumps({ 'id': self.id })
+        @staticmethod
+        def verify_auth_token(token):
+            s = Serializer(app.config['SECRET_KEY'])
+            try:
+                data = s.loads(token)
+            except SignatureExpired:
+                return None # valid token, but expired
+            except BadSignature:
+                return None # invalid token
+            user = User.query.get(data['id'])
+            return user
 
-    @staticmethod
-    def verify_auth_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
-        try:
-            data = s.loads(token)
-        except SignatureExpired:
-            return None # valid token, but expired
-        except BadSignature:
-            return None # invalid token
-        user = User.query.get(data['id'])
-        return user
-In the generate_auth_token() method the token is an encrypted version of a dictionary that has the id of the user. The token will also have an expiration time embedded in it, which by default will be of ten minutes (600 seconds).
+generate_auth_token() 方法生成一个以用户 id 值为值，'id' 为关键字的字典的加密令牌。令牌中同时加入了一个过期时间，默认为十分钟(600 秒)。
 
-The verification is implemented in a verify_auth_token() static method. A static method is used because the user will only be known once the token is decoded. If the token can be decoded then the id encoded in it is used to load the user, and that user is returned.
+验证令牌是在 verify_auth_token() 静态方法中实现的。静态方法被使用在这里，是因为一旦令牌被解码了用户才可得知。如果令牌被解码了，相应的用户将会被查询出来并且返回。
 
-The API needs a new endpoint that the client can use to request a token:
+API 需要一个获取令牌的新函数，这样客户端才能申请到令牌::
 
-@app.route('/api/token')
-@auth.login_required
-def get_auth_token():
-    token = g.user.generate_auth_token()
-    return jsonify({ 'token': token.decode('ascii') })
-Note that this endpoint is protected with the auth.login_required decorator from Flask-HTTPAuth, which requires that username and password are provided.
+    @app.route('/api/token')
+    @auth.login_required
+    def get_auth_token():
+        token = g.user.generate_auth_token()
+        return jsonify({ 'token': token.decode('ascii') })
 
-What remains is to decide how the client is to include this token in a request.
+注意：这个函数是使用了 auth.login_required 装饰器，也就是说需要提供 username 和 password。
 
-The HTTP Basic Authentication protocol does not specifically require that usernames and passwords are used for authentication, these two fields in the HTTP header can be used to transport any kind of authentication information. For token based authentication the token can be sent as a username, and the password field can be ignored.
+剩下来的就是决策客户端怎样在请求中包含这个令牌。
 
-This means that now the server can get some requests authenticated with username and password, while others authenticated with an authentication token. The verify_password callback needs to support both authentication styles:
+HTTP 基本认证方式不特别要求 usernames 和 passwords 用于认证，在 HTTP 头中这两个字段可以用于任何类型的认证信息。基于令牌的认证，令牌可以作为 username 字段，password 字段可以忽略。
 
-@auth.verify_password
-def verify_password(username_or_token, password):
-    # first try to authenticate by token
-    user = User.verify_auth_token(username_or_token)
-    if not user:
-        # try to authenticate with username/password
-        user = User.query.filter_by(username = username_or_token).first()
-        if not user or not user.verify_password(password):
-            return False
-    g.user = user
-    return True
+这就意味着服务器需要同时处理 username 和 password 作为认证，以及令牌作为 username 的认证方式。verify_password 回调函数需要同时支持这两种方式::
+
+    @auth.verify_password
+    def verify_password(username_or_token, password):
+        # first try to authenticate by token
+        user = User.verify_auth_token(username_or_token)
+        if not user:
+            # try to authenticate with username/password
+            user = User.query.filter_by(username = username_or_token).first()
+            if not user or not user.verify_password(password):
+                return False
+        g.user = user
+        return True
+
+新版的 verify_password 回调函数
 This new version of the verify_password callback attempts authentication twice. First it tries to use the username argument as a token. If that doesn't work, then username and password are verified as before.
 
 The following curl request gets an authentication token:
