@@ -240,59 +240,44 @@ HTTP 基本认证方式不特别要求 usernames 和 passwords 用于认证，�
         g.user = user
         return True
 
-新版的 verify_password 回调函数
-This new version of the verify_password callback attempts authentication twice. First it tries to use the username argument as a token. If that doesn't work, then username and password are verified as before.
+新版的 verify_password 回调函数会尝试认证两次。首先它会把 username 参数作为令牌进行认证。如果没有验证通过的话，就会像基于密码认证的一样，验证 username 和 password。
 
-The following curl request gets an authentication token:
+如下的 curl 请求能够获取一个认证的令牌::
 
-$ curl -u miguel:python -i -X GET http://127.0.0.1:5000/api/token
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 139
-Server: Werkzeug/0.9.4 Python/2.7.3
-Date: Thu, 28 Nov 2013 20:04:15 GMT
+    $ curl -u miguel:python -i -X GET http://127.0.0.1:5000/api/token
+    HTTP/1.0 200 OK
+    Content-Type: application/json
+    Content-Length: 139
+    Server: Werkzeug/0.9.4 Python/2.7.3
+    Date: Thu, 28 Nov 2013 20:04:15 GMT
 
-{
-  "token": "eyJhbGciOiJIUzI1NiIsImV4cCI6MTM4NTY2OTY1NSwiaWF0IjoxMzg1NjY5MDU1fQ.eyJpZCI6MX0.XbOEFJkhjHJ5uRINh2JA1BPzXjSohKYDRT472wGOvjc"
-}
-Now the protected resource can be obtained authenticating with the token:
+    {
+      "token": "eyJhbGciOiJIUzI1NiIsImV4cCI6MTM4NTY2OTY1NSwiaWF0IjoxMzg1NjY5MDU1fQ.eyJpZCI6MX0.XbOEFJkhjHJ5uRINh2JA1BPzXjSohKYDRT472wGOvjc"
+    }
 
-$ curl -u eyJhbGciOiJIUzI1NiIsImV4cCI6MTM4NTY2OTY1NSwiaWF0IjoxMzg1NjY5MDU1fQ.eyJpZCI6MX0.XbOEFJkhjHJ5uRINh2JA1BPzXjSohKYDRT472wGOvjc:unused -i -X GET http://127.0.0.1:5000/api/resource
-HTTP/1.0 200 OK
-Content-Type: application/json
-Content-Length: 30
-Server: Werkzeug/0.9.4 Python/2.7.3
-Date: Thu, 28 Nov 2013 20:05:08 GMT
+现在可以使用令牌获取资源::
 
-{
-  "data": "Hello, miguel!"
-}
-Note that in this last request the password is written as the word unused. The password in this request can be anything, since it isn't used.
+    $ curl -u eyJhbGciOiJIUzI1NiIsImV4cCI6MTM4NTY2OTY1NSwiaWF0IjoxMzg1NjY5MDU1fQ.eyJpZCI6MX0.XbOEFJkhjHJ5uRINh2JA1BPzXjSohKYDRT472wGOvjc:unused -i -X GET http://127.0.0.1:5000/api/resource
+    HTTP/1.0 200 OK
+    Content-Type: application/json
+    Content-Length: 30
+    Server: Werkzeug/0.9.4 Python/2.7.3
+    Date: Thu, 28 Nov 2013 20:05:08 GMT
+
+    {
+      "data": "Hello, miguel!"
+    }
+
+需要注意的是这里并没有使用密码。
 
 
 OAuth 认证
 --------------
 
-When talking about RESTful authentication the OAuth protocol is usually mentioned.
+当我们讨论 RESTful 认证的时候，OAuth 协议经常被提及到。
 
-So what is OAuth?
+那么什么是 OAuth？
 
-OAuth can be many things. It is most commonly used to allow an application (the consumer) to access data or services that the user (the resource owner) has with another service (the provider), and this is done in a way that prevents the consumer from knowing the login credentials that the user has with the provider.
+OAuth 可以有很多的含义。最通常就是一个应用程序允许其它应用程序的用户的接入或者使用服务，但是用户必须使用应用程序提供的登录凭证。我建议阅读者可以浏览 `OAuth <http://en.wikipedia.org/wiki/OAuth>`_ 了解更多知识。
 
-For example, consider a website or application that asks you for permission to access your Facebook account and post something to your timeline. In this example you are the resource holder (you own your Facebook timeline), the third party application is the consumer and Facebook is the provider. Even if you grant access and the consumer application writes to your timeline, it never sees your Facebook login information.
 
-This usage of OAuth does not apply to a client/server RESTful API. Something like this would only make sense if your RESTful API can be accessed by third party applications (consumers).
-
-In the case of a direct client/server communication there is no need to hide login credentials, the client (curl in the examples above) receives the credentials from the user and uses them to authenticate requests with the server directly.
-
-OAuth can do this as well, and then it becomes a more elaborated version of the example described in this article. This is commonly referred to as the "two-legged OAuth", to contrast it to the more common "three-legged OAuth".
-
-If you decide to support OAuth there are a few implementations available for Python listed in the OAuth website.
-
-讨论
---------------
-I hope this article helped you understand how to implement user authentication for your API.
-
-Once again, you can download and play with a fully working implementation of the server described above. You can find the software on my github site: REST-auth.
-
-If you have any questions or found any flaws in the solution I presented please let me know below in the comments.
