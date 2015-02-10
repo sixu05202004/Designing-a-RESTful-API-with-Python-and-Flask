@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>使用 Flask-RESTful 设计 RESTful API &mdash; Designing a RESTful API with Python and Flask 1.0 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="Designing a RESTful API with Python and Flask 1.0 documentation" href="index.html"/>
+        <link rel="next" title="使用 Flask 设计 RESTful 的认证" href="third.html"/>
+        <link rel="prev" title="使用 Python 和 Flask 设计 RESTful API" href="first.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="index.html" class="fa fa-home"> Designing a RESTful API with Python and Flask</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="first.html">使用 Python 和 Flask 设计 RESTful API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="first.html#rest">什么是 REST？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#restful-web-service">什么是一个 RESTful 的 web service？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#web-service">设计一个简单的 web service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#flask">Flask 框架的简介</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#python-flask-restful-services">使用 Python 和 Flask 实现 RESTful services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#id2">优化 web service 接口</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#id3">加强 RESTful web service 的安全性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first.html#id4">可能的改进</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">使用 Flask-RESTful 设计 RESTful API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#restful">RESTful 服务器</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">路由</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">解析以及验证请求</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">生成响应</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">认证</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="third.html">使用 Flask 设计 RESTful 的认证</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="third.html#id1">示例代码</a></li>
+<li class="toctree-l2"><a class="reference internal" href="third.html#id2">用户数据库</a></li>
+<li class="toctree-l2"><a class="reference internal" href="third.html#id3">密码散列</a></li>
+<li class="toctree-l2"><a class="reference internal" href="third.html#id4">用户注册</a></li>
+<li class="toctree-l2"><a class="reference internal" href="third.html#id5">基于密码的认证</a></li>
+<li class="toctree-l2"><a class="reference internal" href="third.html#id6">基于令牌的认证</a></li>
+<li class="toctree-l2"><a class="reference internal" href="third.html#oauth">OAuth 认证</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    <div class="wy-side-ad">
+        <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        <!-- 新模板广告 -->
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:160px;height:600px"
+             data-ad-client="ca-pub-3421553373953599"
+             data-ad-slot="9570547632"></ins>
+        <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+
+
+        <!--百度统计代码-->
+
+          <script>
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "//hm.baidu.com/hm.js?9adc7a1c86496c8e2bc61c4f8fc92d30";
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(hm, s);
+        })();
+        </script>
+    </div>
+
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Designing a RESTful API with Python and Flask</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>使用 Flask-RESTful 设计 RESTful API</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/second.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="flask-restful-restful-api">
+<span id="second"></span><h1>使用 Flask-RESTful 设计 RESTful API<a class="headerlink" href="#flask-restful-restful-api" title="Permalink to this headline">¶</a></h1>
+<p>前面我已经用 Flask 实现了一个 RESTful 服务器。今天我们将会使用 Flask-RESTful 来实现同一个 RESTful 服务器，Flask-RESTful 是一个可以简化 APIs 的构建的 Flask 扩展。</p>
+<div class="section" id="restful">
+<h2>RESTful 服务器<a class="headerlink" href="#restful" title="Permalink to this headline">¶</a></h2>
+<p>作为一个提醒， 这里就是待完成事项列表 web service 所提供的方法的定义:</p>
+<div class="highlight-python"><div class="highlight"><pre>==========  ===============================================  =============================
+HTTP 方法   URL                                              动作
+==========  ===============================================  ==============================
+GET         http://[hostname]/todo/api/v1.0/tasks            检索任务列表
+GET         http://[hostname]/todo/api/v1.0/tasks/[task_id]  检索某个任务
+POST        http://[hostname]/todo/api/v1.0/tasks            创建新任务
+PUT         http://[hostname]/todo/api/v1.0/tasks/[task_id]  更新任务
+DELETE      http://[hostname]/todo/api/v1.0/tasks/[task_id]  删除任务
+==========  ================================================ =============================
+</pre></div>
+</div>
+<p>这个服务唯一的资源叫做“任务”，它有如下一些属性:</p>
+<ul class="simple">
+<li><strong>id</strong>: 任务的唯一标识符。数字类型。</li>
+<li><strong>title</strong>: 简短的任务描述。字符串类型。</li>
+<li><strong>description</strong>: 具体的任务描述。文本类型。</li>
+<li><strong>done</strong>: 任务完成的状态。布尔值。</li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h2>路由<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>在上一遍文章中，我使用了 Flask 的视图函数来定义所有的路由。</p>
+<p>Flask-RESTful 提供了一个 Resource 基础类，它能够定义一个给定 URL 的一个或者多个 HTTP 方法。例如，定义一个可以使用 HTTP 的 GET, PUT 以及 DELETE 方法的 User 资源，你的代码可以如下:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span>
+<span class="kn">from</span> <span class="nn">flask.ext.restful</span> <span class="kn">import</span> <span class="n">Api</span><span class="p">,</span> <span class="n">Resource</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">api</span> <span class="o">=</span> <span class="n">Api</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">UserAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<span class="n">api</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">UserAPI</span><span class="p">,</span> <span class="s">&#39;/users/&lt;int:id&gt;&#39;</span><span class="p">,</span> <span class="n">endpoint</span> <span class="o">=</span> <span class="s">&#39;user&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>add_resource 函数使用指定的 endpoint 注册路由到框架上。如果没有指定 endpoint，Flask-RESTful 会根据类名生成一个，但是有时候有些函数比如 url_for 需要 endpoint，因此我会明确给 endpoint 赋值。</p>
+<p>我的待办事项 API 定义两个 URLs：/todo/api/v1.0/tasks（获取所有任务列表），以及 /todo/api/v1.0/tasks/&lt;int:id&gt;（获取单个任务）。我们现在需要两个资源:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">TaskListAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<span class="k">class</span> <span class="nc">TaskAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<span class="n">api</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">TaskListAPI</span><span class="p">,</span> <span class="s">&#39;/todo/api/v1.0/tasks&#39;</span><span class="p">,</span> <span class="n">endpoint</span> <span class="o">=</span> <span class="s">&#39;tasks&#39;</span><span class="p">)</span>
+<span class="n">api</span><span class="o">.</span><span class="n">add_resource</span><span class="p">(</span><span class="n">TaskAPI</span><span class="p">,</span> <span class="s">&#39;/todo/api/v1.0/tasks/&lt;int:id&gt;&#39;</span><span class="p">,</span> <span class="n">endpoint</span> <span class="o">=</span> <span class="s">&#39;task&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h2>解析以及验证请求<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>当我在以前的文章中实现此服务器的时候，我自己对请求的数据进行验证。例如，在之前版本中如何处理 PUT 的:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&#39;/todo/api/v1.0/tasks/&lt;int:task_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="nd">@auth.login_required</span>
+<span class="k">def</span> <span class="nf">update_task</span><span class="p">(</span><span class="n">task_id</span><span class="p">):</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;title&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s">&#39;title&#39;</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">unicode</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;description&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s">&#39;description&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">unicode</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;done&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">[</span><span class="s">&#39;done&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span>
+    <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;title&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;title&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;title&#39;</span><span class="p">])</span>
+    <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;description&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;description&#39;</span><span class="p">])</span>
+    <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;done&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;done&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;done&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span> <span class="p">{</span> <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">make_public_task</span><span class="p">(</span><span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">}</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>在这里, 我必须确保请求中给出的数据在使用之前是有效，这样使得函数变得又臭又长。</p>
+<p>Flask-RESTful 提供了一个更好的方式来处理数据验证，它叫做 RequestParser 类。这个类工作方式类似命令行解析工具 argparse。</p>
+<p>首先，对于每一个资源需要定义参数以及怎样验证它们:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask.ext.restful</span> <span class="kn">import</span> <span class="n">reqparse</span>
+
+<span class="k">class</span> <span class="nc">TaskListAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span> <span class="o">=</span> <span class="n">reqparse</span><span class="o">.</span><span class="n">RequestParser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;title&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">,</span> <span class="n">required</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span>
+            <span class="n">help</span> <span class="o">=</span> <span class="s">&#39;No task title provided&#39;</span><span class="p">,</span> <span class="n">location</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">location</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TaskListAPI</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="c"># ...</span>
+
+<span class="k">class</span> <span class="nc">TaskAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span> <span class="o">=</span> <span class="n">reqparse</span><span class="o">.</span><span class="n">RequestParser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;title&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">,</span> <span class="n">location</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">,</span> <span class="n">location</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;done&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">location</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TaskAPI</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="c"># ...</span>
+</pre></div>
+</div>
+<p>在 TaskListAPI 资源中，POST 方法是唯一接收参数的。参数“标题”是必须的，因此我定义一个缺少“标题”的错误信息。当客户端缺少这个参数的时候，Flask-RESTful 将会把这个错误信息作为响应发送给客户端。“描述”字段是可选的，当缺少这个字段的时候，默认的空字符串将会被使用。一个有趣的方面就是 RequestParser 类默认情况下在 request.values 中查找参数，因此 location 可选参数必须被设置以表明请求过来的参数是 request.json 格式的。</p>
+<p>TaskAPI 资源的参数处理是同样的方式，但是有少许不同。PUT 方法需要解析参数，并且这个方法的所有参数都是可选的。</p>
+<p>当请求解析器被初始化，解析和验证一个请求是很容易的。 例如，请注意 TaskAPI.put() 方法变的多么地简单:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="nb">id</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">task</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reqparse</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">task</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span> <span class="p">{</span> <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">make_public_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="p">}</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>使用 Flask-RESTful 来处理验证的另一个好处就是没有必要单独地处理类似 HTTP 400 错误，Flask-RESTful 会来处理这些。</p>
+</div>
+<div class="section" id="id3">
+<h2>生成响应<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>原来设计的 REST 服务器使用 Flask 的 jsonify 函数来生成响应。Flask-RESTful 会自动地处理转换成 JSON 数据格式，因此下面的代码需要替换:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span> <span class="p">{</span> <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">make_public_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="p">}</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>现在需要写成这样:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">return</span> <span class="p">{</span> <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">make_public_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>Flask-RESTful 也支持自定义状态码，如果有必要的话:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">return</span> <span class="p">{</span> <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">make_public_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="p">},</span> <span class="mi">201</span>
+</pre></div>
+</div>
+<p>Flask-RESTful 还有更多的功能。make_public_task 能够把来自原始服务器上的任务从内部形式包装成客户端想要的外部形式。最典型的就是把任务的 id 转成 uri。Flask-RESTful 就提供一个辅助函数能够很优雅地做到这样的转换，不仅仅能够把 id 转成 uri 并且能够转换其他的参数:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask.ext.restful</span> <span class="kn">import</span> <span class="n">fields</span><span class="p">,</span> <span class="n">marshal</span>
+
+<span class="n">task_fields</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;title&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">,</span>
+    <span class="s">&#39;description&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="o">.</span><span class="n">String</span><span class="p">,</span>
+    <span class="s">&#39;done&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="o">.</span><span class="n">Boolean</span><span class="p">,</span>
+    <span class="s">&#39;uri&#39;</span><span class="p">:</span> <span class="n">fields</span><span class="o">.</span><span class="n">Url</span><span class="p">(</span><span class="s">&#39;task&#39;</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">class</span> <span class="nc">TaskAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="c"># ...</span>
+
+    <span class="k">def</span> <span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="c"># ...</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="s">&#39;task&#39;</span><span class="p">:</span> <span class="n">marshal</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">task_fields</span><span class="p">)</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>task_fields 结构用于作为 marshal 函数的模板。fields.Uri 是一个用于生成一个 URL 的特定的参数。
+它需要的参数是 endpoint。</p>
+</div>
+<div class="section" id="id4">
+<h2>认证<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<p>在 REST 服务器中的路由都是由 HTTP 基本身份验证保护着。在最初的那个服务器是通过使用 Flask-HTTPAuth 扩展来实现的。</p>
+<p>因为 Resouce 类是继承自 Flask 的 MethodView，它能够通过定义 decorators 变量并且把装饰器赋予给它:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask.ext.httpauth</span> <span class="kn">import</span> <span class="n">HTTPBasicAuth</span>
+<span class="c"># ...</span>
+<span class="n">auth</span> <span class="o">=</span> <span class="n">HTTPBasicAuth</span><span class="p">()</span>
+<span class="c"># ...</span>
+
+<span class="k">class</span> <span class="nc">TaskAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="n">decorators</span> <span class="o">=</span> <span class="p">[</span><span class="n">auth</span><span class="o">.</span><span class="n">login_required</span><span class="p">]</span>
+    <span class="c"># ...</span>
+
+<span class="k">class</span> <span class="nc">TaskAPI</span><span class="p">(</span><span class="n">Resource</span><span class="p">):</span>
+    <span class="n">decorators</span> <span class="o">=</span> <span class="p">[</span><span class="n">auth</span><span class="o">.</span><span class="n">login_required</span><span class="p">]</span>
+    <span class="c"># ...</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="third.html" class="btn btn-neutral float-right" title="使用 Flask 设计 RESTful 的认证">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="first.html" class="btn btn-neutral" title="使用 Python 和 Flask 设计 RESTful API"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014, Miguel.
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
